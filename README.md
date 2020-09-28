@@ -1,4 +1,4 @@
-# AWS CDI Samples
+# AWS Cloud Digital Interface Samples
 This repository contains working samples that demonstrate how to use AWS Cloud Digital Interface (CDI) to transport uncompressed live video between applications.
 
 ## Getting the samples

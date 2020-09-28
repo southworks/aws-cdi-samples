@@ -1,4 +1,4 @@
-# Video CompositionSample
+# Video Composition Sample
 The tools in this scample can be used to experiment with AWS Cloud Digital Interface (CDI) using a video source and an optional composition process that creates an overlay based on an HTML source to create an uncompressed video source, and then using the AWS CDI SDK to transmit the result across the network.
 
 > **NOTE:** This sample currently runs on **Windows ONLY**.
