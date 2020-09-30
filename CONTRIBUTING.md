@@ -15,7 +15,7 @@ Before submitting **issues**, **feature requests**, or **questions**, please do 
 
 ### Submitting Issues 
 
-1. Go to the [Issues]() page, click on [New issue]().
+1. Go to the [Issues](https://github.com/southworks/aws-cdi-samples/issues) page, click on [New issue](https://github.com/southworks/aws-cdi-samples/issues/new/choose).
 2. Select the **template**. Choose the one that fits to your case. 
    1. Bug
    2. Documentation Bug
