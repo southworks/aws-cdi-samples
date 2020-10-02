@@ -10,7 +10,7 @@ To use the samples, clone this GitHub repository using Git.
 ```
 
 ## Samples
-- [Video Composition](samples/video-composition)
+- [HTML Motion Graphics Overlay](samples/html-motion-graphics-overlay)
 
 ## Contributing
 Contributions are welcomed!

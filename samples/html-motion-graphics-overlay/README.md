@@ -1,5 +1,8 @@
-# Video Composition Sample
-The tools in this scample can be used to experiment with AWS Cloud Digital Interface (CDI) using a video source and an optional composition process that creates an overlay based on an HTML source to create an uncompressed video source, and then using the AWS CDI SDK to transmit the result across the network.
+# HTML Motion Graphics Overlay Sample
+
+The scenario for this sample is inspired in a cloud-based live production workflow running in AWS that takes a live video source and applies a composition process to include a motion graphics overlay based on an HTML source.
+
+The sample uses AWS Cloud Digital Interface (CDI) to take the uncompressed output from the motion graphics overlay composition process running in an AWS VM, and transmit it to another AWS VM to run a transcoding and packaging proccess.
 
 > **NOTE:** This sample currently runs on **Windows ONLY**.
 
