@@ -14,16 +14,33 @@ The sample uses AWS Cloud Digital Interface (CDI) to take the uncompressed outpu
 - VLC (optional, http://www.videolan.org/vlc/)
 
 ## Setup
-- Open and build the _**dev\sdk\Krill_SDK\proj\rmt_proj.sln**_  and _**dev\Video.Tools.sln**_ solutions in Visual Studio and build them. By default, all binaries are placed in the _**build**_ directory of the repository inside a folder corresponding to the platform and type of build (e.g. _**build\x64\Release**_).
+- Follow the instructions from the [AWS CDI SDK installation guide](https://github.com/aws/aws-cdi-sdk/blob/mainline/INSTALL_GUIDE_LINUX.md#install-aws-cdi-sdk) to clone the **AWS CDI SDK** and **Libfabric** GitHub repositories.
+
+- Follow the [AWS SDK build steps](https://github.com/aws/aws-cdi-sdk/blob/mainline/INSTALL_GUIDE_WINDOWS.md#download-and-build-the-aws-sdk-for-c) to download and build the **AWS SDK for C++**.
+  > **Note:** When runnning the `msbuild` command to build the SDK, make sure to also include the `/p:Configuration` parameter specifying the selected configuration mode (Debug or Release). Example to build in Release mode:
+  > ```
+  > msbuild ALL_BUILD.vcxproj /p:Configuration=Release
+  > ```
+
+- Follow the [AWS CDI SDK build steps](https://github.com/aws/aws-cdi-sdk/blob/mainline/INSTALL_GUIDE_WINDOWS.md#build-the-aws-cdi-sdk) to build the **AWS CDI SDK**.
+    > **Note:** Before building the SDK, disable the display of performance metrics to your Amazon CloudWatch account. To do this, edit the `aws-cdi-sdk\src\cdi\configuration.h` file and comment out the following directives:
+    > -  `#define CLOUDWATCH_METRICS_ENABLED`
+    > - `#define METRICS_GATHERING_SERVICE_ENABLED`
+
+- Set the following environment variables before building the sample:
+  - **CDI_SDK_PATH**: path to the root folder of the _AWS CDI SDK_ local repository.
+  - **LIBFABRIC_PATH**: path to the root folder of the _Libfabric_ local repository.
+
+- Open and build the _**dev\Video.Tools.sln**_ solution in Visual Studio and build it. Make sure to select the target platform and type of build; by default, all binaries are placed in the _**build**_ directory of the repository inside a folder corresponding to the platform and type of build (e.g. _**build\x64\Release**_).
 
 - Download the sample video from the link below and copy it to the **scripts** folder:
 http://ftp.nluug.nl/pub/graphics/blender/demo/movies/ToS/tears_of_steel_720p.mov.
 
 - Set the following environment variables before running the scripts. Alternatively, configure the FFmpeg, VLC, and Video Tools executables in your path.
 
-  - **FFMPEG_PATH** : path to _ffmpeg.exe_, _ffplay.exe_, and _ffprobe.exe_
-  - **VLC_PATH**    : path to _vlc.exe_
-  - **TOOLS_PATH**  : path to _htmlsrc.exe_ and _rmtpipe.exe_
+  - **FFMPEG_PATH**: path to _ffmpeg.exe_, _ffplay.exe_, and _ffprobe.exe_
+  - **VLC_PATH**: path to _vlc.exe_
+  - **TOOLS_PATH**: path to _htmlsrc.exe_ and _rmtpipe.exe_
 
 ## Running the Sample
 The _**execute**_ script in the _**scripts**_ folder can be used to invoke the tools for a variety of configurations. Refer to the examples section for more information.
