@@ -1,11 +1,11 @@
 #include "Errors.h"
 
-const char* CdiTools::connection_category::name() const noexcept
+const char* CdiTools::Internal::connection_category::name() const noexcept
 {
     return "connection";
 }
 
-std::string CdiTools::connection_category::message(int ev) const
+std::string CdiTools::Internal::connection_category::message(int ev) const
 {
     switch (static_cast<connection_error>(ev))
     {
@@ -31,7 +31,7 @@ std::string CdiTools::connection_category::message(int ev) const
 }
 
 // allow comparison with generic error conditions
-std::error_condition CdiTools::connection_category::default_error_condition(int ev) const noexcept
+std::error_condition CdiTools::Internal::connection_category::default_error_condition(int ev) const noexcept
 {
     switch (static_cast<connection_error>(ev))
     {
@@ -49,20 +49,19 @@ std::error_condition CdiTools::connection_category::default_error_condition(int 
     }
 }
 
-const std::error_category& connection_category()
+const std::error_category& CdiTools::connection_category()
 {
-    static CdiTools::connection_category instance;
-
+    static Internal::connection_category instance;
+    
     return instance;
 }
 
-std::error_code CdiTools::make_error_code(CdiTools::connection_error ec)
+std::error_code CdiTools::make_error_code(connection_error ec)
 {
     return std::error_code(static_cast<int>(ec), connection_category());
 }
 
-std::error_condition CdiTools::make_error_condition(CdiTools::connection_error ec)
+std::error_condition CdiTools::make_error_condition(connection_error ec)
 {
     return std::error_condition(static_cast<int>(ec), connection_category());
 }
-
