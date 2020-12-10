@@ -46,9 +46,9 @@ namespace CdiTools
         std::vector<std::shared_ptr<Stream>> get_connection_streams(const std::string& connection_name);
         void show_stream_connections(uint16_t stream_identifier, ConnectionDirection direction = ConnectionDirection::Both);
         void open_connections(ChannelHandler handler);
-        void async_read(const std::shared_ptr<IConnection>& connection, const std::error_code& ec, ChannelHandler handler);
+        void async_read(std::shared_ptr<IConnection> connection, const std::error_code& ec, ChannelHandler handler);
         void read_complete(std::shared_ptr<IConnection> connection, const std::error_code& ec, Payload payload, ChannelHandler handler);
-        void async_write(const std::shared_ptr<IConnection>& connection, const std::error_code& ec, ChannelHandler handler);
+        void async_write(std::shared_ptr<IConnection> connection, const std::error_code& ec, ChannelHandler handler);
         void write_complete(std::shared_ptr<IConnection> connection, std::shared_ptr<Stream> stream, const std::error_code& ec, ChannelHandler handler);
         PayloadBuffer& get_connection_buffer(const std::string& connection_name);
 

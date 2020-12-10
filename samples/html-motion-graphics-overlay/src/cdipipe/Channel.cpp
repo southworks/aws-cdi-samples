@@ -98,7 +98,7 @@ void CdiTools::Channel::open_connections(ChannelHandler handler)
 }
 
 void CdiTools::Channel::async_read(
-    const std::shared_ptr<IConnection>& connection,
+    std::shared_ptr<IConnection> connection,
     const std::error_code& ec,
     ChannelHandler handler)
 {
@@ -165,7 +165,7 @@ void CdiTools::Channel::read_complete(
 }
 
 void CdiTools::Channel::async_write(
-    const std::shared_ptr<IConnection>& connection,
+    std::shared_ptr<IConnection> connection,
     const std::error_code& ec,
     ChannelHandler handler)
 {
@@ -344,7 +344,7 @@ std::shared_ptr<CdiTools::Stream> CdiTools::Channel::add_ancillary_stream(uint16
 void CdiTools::Channel::map_stream(uint16_t stream_identifier, const std::string& connection_name)
 {
     auto connection = std::find_if(connections_.begin(), connections_.end(),
-        [&](const std::shared_ptr<IConnection>& connection) { return connection->get_name() == connection_name; });
+        [&](const auto& connection) { return connection->get_name() == connection_name; });
     if (connection == connections_.end()) {
         throw InvalidConfigurationException(std::string("Failed to map unknown connection '" + connection_name + "'."));
     }
@@ -380,14 +380,14 @@ void CdiTools::Channel::show_configuration()
     std::vector<std::shared_ptr<IConnection>> outputs;
     std::partition_copy(begin(connections_), end(connections_),
         std::back_inserter(inputs), std::back_inserter(outputs),
-        [](const std::shared_ptr<IConnection> item) { return item->get_direction() == ConnectionDirection::In; });
+        [](const auto& item) { return item->get_direction() == ConnectionDirection::In; });
 
     std::cout << "# Inputs\n";
     for (auto&& connection : inputs) {
         std::cout << "  [" << setw(12) << left << connection->get_name() << "] "
             << "type: " << typeid(*connection).name()
             << "\n";
-        for (auto& stream : get_connection_streams(connection->get_name())) {
+        for (auto&& stream : get_connection_streams(connection->get_name())) {
             std::cout << "    stream: " << stream->id() << "\n";
         }
     }
@@ -406,7 +406,7 @@ void CdiTools::Channel::show_configuration()
 std::shared_ptr<CdiTools::Stream> CdiTools::Channel::get_stream(uint16_t stream_identifier)
 {
     auto stream = std::find_if(streams_.begin(), streams_.end(),
-        [=](const std::shared_ptr<Stream>& stream) { return stream->id() == stream_identifier; });
+        [=](const auto& stream) { return stream->id() == stream_identifier; });
 
     if (stream == streams_.end()) {
         throw InvalidConfigurationException(
@@ -421,7 +421,7 @@ std::vector<std::shared_ptr<CdiTools::IConnection>> CdiTools::Channel::get_strea
     std::vector<std::shared_ptr<IConnection>> stream_connections;
     for (auto&& map_entry : boost::make_iterator_range(channel_map_.right.equal_range(stream_identifier))) {
         auto connection = std::find_if(connections_.begin(), connections_.end(),
-            [&](const std::shared_ptr<IConnection>& connection) { return connection->get_name() == map_entry.second; });
+            [&](const auto& connection) { return connection->get_name() == map_entry.second; });
         if (connection == connections_.end())
         {
             throw InvalidConfigurationException(
@@ -441,7 +441,7 @@ std::vector<std::shared_ptr<CdiTools::Stream>> CdiTools::Channel::get_connection
     std::vector<std::shared_ptr<Stream>> connection_streams;
     for (auto&& map_entry : boost::make_iterator_range(channel_map_.left.equal_range(connection_name))) {
         auto stream = std::find_if(streams_.begin(), streams_.end(),
-            [&](const std::shared_ptr<Stream>& stream) { return stream->id() == map_entry.second; });
+            [&](const auto& stream) { return stream->id() == map_entry.second; });
         if (stream == streams_.end())
         {
             throw InvalidConfigurationException(
