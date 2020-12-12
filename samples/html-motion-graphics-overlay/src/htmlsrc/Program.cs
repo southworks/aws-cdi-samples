@@ -184,6 +184,7 @@
                     log?.WriteLine($"  Background color          : {backgroundColor}");
                     log?.WriteLine($"  Scale factor              : {scaleFactor}");
                     log?.WriteLine();
+                    log?.WriteLine("Press 'q' to exit...");
                 }
 
                 using var source = new HtmlSource(log);

@@ -89,7 +89,8 @@
                     var scriptTask = await browser.EvaluateScriptAsync(script);
                     browser.Paint += (object sender, OnPaintEventArgs e) =>
                     {
-                        if (cancellationToken.IsCancellationRequested)
+                        if (cancellationToken.IsCancellationRequested
+                            || (Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Q))
                         {
                             isCompleted.Set();
                             return;
