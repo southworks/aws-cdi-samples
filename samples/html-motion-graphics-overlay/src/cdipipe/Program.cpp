@@ -4,6 +4,7 @@
 #include "Configuration.h"
 #include "CommandLine.h"
 #include "Application.h"
+#include "Utils.h"
 
 using namespace CdiTools;
 
@@ -11,6 +12,7 @@ int main(int argc, char* argv[])
 {
     bool show_channel_config = false;
     ChannelRole channel_role = ChannelRole::None;
+    std::string frame_rate;
 
     CommandLine command_line{ "CDI receiver/transmitter protocol bridge for video applications" };
 
@@ -32,8 +34,9 @@ int main(int argc, char* argv[])
         .add_option("video_out_port",   "Video output port number", Configuration::video_out_port)
         .add_option("audio_in_port",    "Audio input port number", Configuration::audio_in_port)
         .add_option("audio_out_port",   "Audio output port number", Configuration::audio_out_port)
-        .add_option("frame_width",      "Video frame width", Configuration::frame_width)
-        .add_option("frame_height",     "Video frame height", Configuration::frame_height)
+        .add_option("frame_width",      "Input source frame width", Configuration::frame_width)
+        .add_option("frame_height",     "Input source frame height", Configuration::frame_height)
+        .add_option("frame_rate",       "Input source frame rate", frame_rate)
         .add_option("large_pool_items", "Large payload pool maximum items", Configuration::large_buffer_pool_max_items)
         .add_option("small_pool_items", "Small payload pool maximum items", Configuration::small_buffer_pool_max_items);
 
@@ -46,6 +49,17 @@ int main(int argc, char* argv[])
         if (Configuration::buffer_delay < 0 || Configuration::buffer_delay > MAXIMUM_RX_BUFFER_DELAY_MS) {
             std::cout << "ERROR: '-buffer_delay' setting must be a value between 0 and " << MAXIMUM_RX_BUFFER_DELAY_MS << ". Use -help to see available options.\n";
             return 1;
+        }
+
+        if (!frame_rate.empty()) {
+            std::vector<int> tokens;
+            if (!Utils::split<int>(frame_rate, '/', std::back_inserter(tokens)) || tokens.empty() || tokens.size() > 2) {
+                std::cout << "ERROR: invalid value '" << frame_rate << "' provided for parameter 'frame_rate'.\n";
+                return 1;
+            }
+
+            Configuration::frame_rate_numerator = tokens[0];
+            Configuration::frame_rate_denominator = tokens.size() > 1 ? tokens[1] : 1;
         }
 
         return Application::run(channel_role, show_channel_config);
