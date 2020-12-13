@@ -68,10 +68,21 @@ bool CommandLine::parse(int argc, char* argv[])
                 return false;
             }
 
-            if (!option->second->set_value(i + 1 < argc && *argv[i + 1] != '-' ? argv[++i] : "")) {
-                show_usage();
-                std::cout << "ERROR: Invalid value '" << argv[i] << "' found for option '" << option_name << "'.\n\n";
-                return false;
+            if (i + 1 < argc && *argv[i + 1] != '-') {
+                if (!option->second->set_value(argv[++i])) {
+                    show_usage();
+                    std::cout << "ERROR: Invalid value '" << argv[i] << "' found for option '" << option_name << "'.\n\n";
+                    return false;
+                }
+            }
+            else {
+                if (option->second->is_switch()) {
+                    option->second->set_value("1");
+                }
+                else {
+                    std::cout << "ERROR: Missing value for option '" << option_name << "'.\n\n";
+                    return false;
+                }
             }
         }
     }

@@ -18,6 +18,7 @@ public:
     const std::string& get_name() { return name_; }
     virtual std::string get_help_text() { return help_text_; }
     virtual bool set_value(const std::string& option_value) = 0;
+    virtual bool is_switch() const = 0;
 
     friend std::ostream& operator<<(std::ostream& os, const OptionBase& option);
 
@@ -40,6 +41,7 @@ public:
 
     bool set_value(const std::string& option_value) override;
     inline const T& get_value() const { return value_; }
+    inline bool is_switch() const override { return std::is_integral<T>::value && std::is_same<T, bool>::value; }
 
 private:
     void write(std::ostream& os) const override;
@@ -76,6 +78,7 @@ public:
     }
 
     bool set_value(const std::string& option_value) override;
+    inline bool is_switch() const override { return std::is_integral<T>::value && std::is_same<T, bool>::value; }
     std::string get_help_text() override;
 
 private:
