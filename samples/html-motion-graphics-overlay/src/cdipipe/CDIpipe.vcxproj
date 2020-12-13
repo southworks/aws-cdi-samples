@@ -227,6 +227,7 @@
     <ClInclude Include="StreamOptions.h" />
     <ClInclude Include="TcpConnection.h" />
     <ClInclude Include="ThreadPool.h" />
+    <ClInclude Include="Utils.h" />
     <ClInclude Include="VideoStream.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
