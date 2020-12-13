@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cassert>
 
 #include <cdi_core_api.h>
 #include <cdi_pool_api.h>
@@ -45,8 +46,8 @@ CdiTools::Application::Application(
     , adapter_handle_{ NULL }
     , large_buffer_pool_handle_{ NULL }
     , small_buffer_pool_handle_{ NULL }
-    , large_buffer_pool_item_size_{ 0 }
-    , small_buffer_pool_item_size_{ 0 }
+    , large_buffer_pool_item_size_{ large_buffer_pool_item_size }
+    , small_buffer_pool_item_size_{ small_buffer_pool_item_size }
 {
     Cdi::initialize(cdi_logger_, log_level, log_file_name);
     Cdi::initialize_adapter(adapter_ip_address, adapter_type,
@@ -62,11 +63,13 @@ CdiTools::Application::~Application()
 
 void* CdiTools::Application::get_pool_buffer(size_t payload_size)
 {
-    void* buffer_ptr;
+    void* buffer_ptr = nullptr;
 
     CdiPoolHandle pool_handle = get_pool_handle(payload_size);
-    if (!CdiPoolGet(pool_handle, &buffer_ptr)) {
-        LOG_ERROR << "Failed to allocate a payload buffer from the '" << CdiPoolGetName(pool_handle) << "' pool"
+    assert(pool_handle != NULL);
+
+    if (NULL == pool_handle || !CdiPoolGet(pool_handle, &buffer_ptr)) {
+        LOG_DEBUG << "Failed to allocate a payload buffer from the '" << CdiPoolGetName(pool_handle) << "' pool"
             << ", requested size: " << std::to_string(CdiPoolGetItemSize(pool_handle))
             << ", free items: " << std::to_string(CdiPoolGetFreeItemCount(pool_handle))
             << ".";
@@ -78,6 +81,7 @@ void* CdiTools::Application::get_pool_buffer(size_t payload_size)
 void CdiTools::Application::free_pool_buffer(void* buffer_ptr, size_t payload_size)
 {
     CdiPoolHandle pool_handle = get_pool_handle(payload_size);
+    assert(pool_handle != NULL);
 
     CdiPoolPut(pool_handle, buffer_ptr);
 }
@@ -85,10 +89,27 @@ void CdiTools::Application::free_pool_buffer(void* buffer_ptr, size_t payload_si
 int CdiTools::Application::get_pool_free_buffer_count(size_t payload_size)
 {
     CdiPoolHandle pool_handle = get_pool_handle(payload_size);
+    assert(pool_handle != NULL);
 
     int count = CdiPoolGetFreeItemCount(pool_handle);
 
     return count;
+}
+
+CdiPoolHandle CdiTools::Application::get_pool_handle(size_t payload_size)
+{
+    if (payload_size <= small_buffer_pool_item_size_) {
+        return small_buffer_pool_handle_;
+    }
+
+    if (payload_size <= large_buffer_pool_item_size_) {
+        return large_buffer_pool_handle_;
+    }
+
+    // TODO: make pool item sizes command line arguments?
+    LOG_ERROR << "Requested payload size exceeds maximum allowed (" << large_buffer_pool_item_size_ << " bytes).";
+
+    return NULL;
 }
 
 std::shared_ptr<CdiTools::Channel> CdiTools::Application::configure_channel(ChannelRole channel_role)

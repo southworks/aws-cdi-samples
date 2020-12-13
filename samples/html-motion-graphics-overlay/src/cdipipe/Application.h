@@ -44,8 +44,7 @@ namespace CdiTools
         static int run(ChannelRole channel_role, bool show_channel_config);
 
     private:
-        inline CdiPoolHandle get_pool_handle(size_t payload_size)
-            { return payload_size > small_buffer_pool_item_size_ ? large_buffer_pool_handle_ : small_buffer_pool_handle_; }
+        CdiPoolHandle get_pool_handle(size_t payload_size);
         static std::shared_ptr<Channel> configure_channel(ChannelRole channel_role);
         static CdiTools::Application* instance_;
 
