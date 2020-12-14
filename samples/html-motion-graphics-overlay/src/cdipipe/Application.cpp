@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cassert>
+#include <conio.h>
 
 #include <cdi_core_api.h>
 #include <cdi_pool_api.h>
@@ -137,7 +138,7 @@ std::shared_ptr<CdiTools::Channel> CdiTools::Application::configure_channel(Chan
         channel->add_input(input_connection_type, "video_in", "127.0.0.1", Configuration::video_in_port, ConnectionMode::Listener, 0);
         channel->add_output(output_connection_type, ChannelType::CdiStream != Configuration::channel_type ? "video_out" : "avid_out",
             Configuration::remote_ip, Configuration::port_number, ConnectionMode::Client,
-            ChannelType::CdiStream != Configuration::channel_type ? video_buffer_size : video_buffer_size + audio_buffer_size);
+            ChannelType::CdiStream != Configuration::channel_type ? video_buffer_size : static_cast<size_t>(video_buffer_size) + audio_buffer_size);
 
         if (!Configuration::disable_audio) {
             channel->add_input(input_connection_type, "audio_in", "127.0.0.1", Configuration::audio_in_port, ConnectionMode::Listener, 0);
@@ -223,9 +224,31 @@ int CdiTools::Application::run(ChannelRole channel_role, bool show_channel_confi
                 Configuration::small_buffer_pool_item_size, Configuration::small_buffer_pool_max_items, LogLevel::Info);
         }
 
-        std::cout << enum_name(channel_type_map, Configuration::channel_type) << " channel is starting in " << enum_name(channel_role_map, channel_role) << " mode"
-            << " (threads: " << Configuration::num_threads << ", large payload pool: " << Configuration::large_buffer_pool_max_items 
+        std::thread shutdown([&]() {
+            int key = 0;
+            // TODO: this is not portable
+            while (true) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                if (_kbhit()) {
+                    key = _getch();
+                    if (key == 'q' || key == 'Q') break;
+                    if (key == 'i' || key == 'I') Logger::set_level(LogLevel::Info);
+                    if (key == 'd' || key == 'D') Logger::set_level(LogLevel::Debug);
+                    if (key == 't' || key == 'T') Logger::set_level(LogLevel::Trace);
+                }
+            }
+
+            channel->shutdown();
+        });
+
+        std::cout << "Channel is starting (mode: " << enum_name(channel_role_map, channel_role) 
+            << ", type: " << enum_name(channel_type_map, Configuration::channel_type)
+            << ", threads: " << Configuration::num_threads
+            << ", large payload pool: " << Configuration::large_buffer_pool_max_items 
             << ", small payload pool: " << Configuration::small_buffer_pool_max_items << ")...\n";
+
+        std::cout << "Press 'q' to exit...\n\n";
+
         channel->start([](const std::error_code& ec) {
             if (ec) {
                 std::cout << "ERROR: " << ec.message() << ".\n";
@@ -233,7 +256,13 @@ int CdiTools::Application::run(ChannelRole channel_role, bool show_channel_confi
             else {
                 std::cout << "Channel has shut down.\n";
             }
-            }, Configuration::num_threads);
+        }, Configuration::num_threads);
+
+        if (shutdown.joinable()) {
+            shutdown.join();
+        }
+
+        Logger::shutdown();
 
         return 0;
     }
@@ -242,6 +271,4 @@ int CdiTools::Application::run(ChannelRole channel_role, bool show_channel_confi
         std::cout << "ERROR: " << exception.what() << std::endl;
         return 1;
     }
-
-    Logger::shutdown();
 }
