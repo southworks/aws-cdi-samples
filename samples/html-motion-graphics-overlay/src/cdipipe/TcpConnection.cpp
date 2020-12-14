@@ -108,9 +108,8 @@ void CdiTools::TcpConnection::async_receive(ReceiveHandler handler)
     }
 
     auto& default_stream = streams_[0];
-    auto payload = std::make_shared<PayloadData>(
-        default_stream->id(), default_stream->payload_size());
-    if (payload->size() == 0) {
+    auto payload = PayloadData::create(default_stream->id(), default_stream->payload_size());
+    if (payload == nullptr) {
         auto payload_errors = ++payload_errors_;
         LOG_DEBUG << "Failed to obtain a payload buffer for #" << payload->stream_identifier() << ":" << payloads_received_ + 1
             << ", size " << default_stream->payload_size()

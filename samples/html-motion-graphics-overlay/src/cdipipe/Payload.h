@@ -13,8 +13,6 @@ namespace CdiTools
     class PayloadData : public CdiSgList
     {
     public:
-        PayloadData(uint16_t stream_identifier, size_t size);
-        PayloadData(CdiSgList sgl, uint16_t stream_identifier);
         ~PayloadData();
 
         inline int stream_identifier() const { return stream_identifier_; }
@@ -23,7 +21,12 @@ namespace CdiTools
         inline int sequence() const { return sequence_number_; }
     #endif
 
+    static std::shared_ptr<PayloadData> create(uint16_t stream_identifier, size_t size);
+    static std::shared_ptr<PayloadData> create(CdiSgList sgl, uint16_t stream_identifier);
+
     private:
+        PayloadData(uint16_t stream_identifier, void* buffer_ptr, size_t size);
+        PayloadData(CdiSgList sgl, uint16_t stream_identifier);
         enum class PayloadClass
         {
             Sgl,

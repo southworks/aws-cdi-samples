@@ -243,10 +243,10 @@ void CdiTools::CdiConnection::on_payload_received(const CdiAvmRxCbData* cb_data_
 
     auto stream = self->get_stream(cb_data_ptr->avm_extra_data.stream_identifier);
     if (stream != nullptr) {
-        auto payload = std::make_shared<PayloadData>(
+        auto payload = PayloadData::create(
             cb_data_ptr->sgl,
             cb_data_ptr->avm_extra_data.stream_identifier);
-        if (payload->size() > 0) {
+        if (payload != nullptr) {
             self->logger_.trace() << "CDI received payload #" << payload->stream_identifier() << ":" << payloads_received
 #ifdef TRACE_PAYLOADS
                 << " (" << payload->sequence() << ")"

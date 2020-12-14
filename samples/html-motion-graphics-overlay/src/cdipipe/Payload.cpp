@@ -7,7 +7,43 @@ Logger CdiTools::PayloadData::logger_{ "Payload" };
 std::atomic_int CdiTools::PayloadData::next_sequence_number_ = 0;
 #endif
 
-CdiTools::PayloadData::PayloadData(uint16_t stream_identifier, size_t size)
+std::shared_ptr<CdiTools::PayloadData> CdiTools::PayloadData::create(uint16_t stream_identifier, size_t size)
+{
+    struct PayloadContainer
+    {
+        PayloadContainer(uint16_t stream_identifier, void* buffer_ptr, size_t size)
+            : payload_{ stream_identifier, buffer_ptr, size } {}
+        PayloadData payload_;
+    };
+
+    void* buffer_ptr = Application::get()->get_pool_buffer(size);
+    if (buffer_ptr == nullptr) {
+        LOG_DEBUG << "Failed to allocate a payload buffer of size: " << size;
+        return nullptr;
+    }
+
+    auto payload_container = std::make_shared<PayloadContainer>(stream_identifier, buffer_ptr, size);
+    std::shared_ptr<PayloadData> payload_ptr{ std::move(payload_container), &payload_container->payload_ };
+
+    return payload_ptr;
+}
+
+std::shared_ptr<CdiTools::PayloadData> CdiTools::PayloadData::create(CdiSgList sgl, uint16_t stream_identifier)
+{
+    struct PayloadContainer
+    {
+        PayloadContainer(CdiSgList sgl, uint16_t stream_identifier)
+            : payload_{ sgl, stream_identifier } {}
+        PayloadData payload_;
+    };
+
+    auto payload_container = std::make_shared<PayloadContainer>(sgl, stream_identifier);
+    std::shared_ptr<PayloadData> payload_ptr{ std::move(payload_container), &payload_container->payload_ };
+
+    return payload_ptr;
+}
+
+CdiTools::PayloadData::PayloadData(uint16_t stream_identifier, void* buffer_ptr, size_t size)
     : CdiSgList{ 0 }
     , sgl_entry_{ 0 }
     , stream_identifier_{ stream_identifier }
@@ -16,7 +52,7 @@ CdiTools::PayloadData::PayloadData(uint16_t stream_identifier, size_t size)
     , sequence_number_{ ++next_sequence_number_ }
 #endif
 {
-    sgl_entry_.address_ptr = Application::get()->get_pool_buffer(size);
+    sgl_entry_.address_ptr = buffer_ptr;
     if (sgl_entry_.address_ptr != nullptr) {
         sgl_entry_.size_in_bytes = (int)size;
         total_data_size = (int)size;
