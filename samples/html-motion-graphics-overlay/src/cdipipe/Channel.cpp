@@ -48,6 +48,8 @@ void CdiTools::Channel::start(ChannelHandler handler, int thread_pool_size)
     else {
         io_.run();
     }
+
+    LOG_INFO << "Channel shut down sucessfully.";
 }
 
 void CdiTools::Channel::open_connections(ChannelHandler handler)
@@ -278,11 +280,11 @@ void CdiTools::Channel::shutdown()
             LOG_ERROR << "Connection'" << connection->get_name() << "' could not be closed: " << ec.message() << ", code: " << ec.value() << ".";
         }
         else {
-            LOG_DEBUG << "Connection '" << connection->get_name() << "' closed successfully.";
+            LOG_INFO << "Connection '" << connection->get_name() << "' closed successfully.";
         }
     }
 
-    LOG_INFO << "Channel shut down sucessfully.";
+    io_.stop();
 }
 
 std::shared_ptr<CdiTools::IConnection> CdiTools::Channel::add_input(ConnectionType connection_type, const std::string& name,
