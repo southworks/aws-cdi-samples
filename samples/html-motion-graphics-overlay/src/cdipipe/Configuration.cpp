@@ -17,6 +17,7 @@ NetworkAdapterType Configuration::adapter_type{ NetworkAdapterType::SocketLibFab
 std::string Configuration::local_ip{ "127.0.0.1" };
 std::string Configuration::remote_ip{ "127.0.0.1" };
 int Configuration::buffer_delay{ 0 };
+int Configuration::tx_timeout{ 0 };
 
 // buffer pool configuration
 const uint32_t Configuration::large_buffer_pool_item_size = 1920 * 1080 * 3;

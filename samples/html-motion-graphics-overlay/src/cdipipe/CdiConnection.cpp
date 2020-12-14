@@ -15,6 +15,8 @@ CdiTools::CdiConnection::CdiConnection(const std::string& name, const std::strin
     ConnectionMode connection_mode, ConnectionDirection connection_direction, io_context& io)
     : Connection(name, host_name, port_number, connection_mode, connection_direction, io)
     , connection_handle_{ NULL }
+    , tx_timeout_{ Configuration::tx_timeout > 0
+        ? Configuration::tx_timeout : (1000000 * Configuration::frame_rate_denominator) / Configuration::frame_rate_numerator }
 {
 }
 
@@ -189,10 +191,7 @@ void CdiTools::CdiConnection::async_transmit(Payload payload, TransmitHandler ha
         << "...";
 
     do {
-        // TODO: review what the correct value should be
-        const int max_latency_microsecs = 100000;
-
-        rs = CdiAvmTxPayload(connection_handle_, &payload_config, avm_config_ptr, payload.get(), max_latency_microsecs);
+        rs = CdiAvmTxPayload(connection_handle_, &payload_config, avm_config_ptr, payload.get(), tx_timeout_);
     } while (CdiReturnStatus::kCdiStatusQueueFull == rs);
 }
 

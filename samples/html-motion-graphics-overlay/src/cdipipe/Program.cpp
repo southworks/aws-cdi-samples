@@ -37,6 +37,7 @@ int main(int argc, char* argv[])
         .add_option("frame_width",      "Input source frame width", Configuration::frame_width)
         .add_option("frame_height",     "Input source frame height", Configuration::frame_height)
         .add_option("frame_rate",       "Input source frame rate", frame_rate)
+        .add_option("tx_timeout",       "Payload transmission timeout in microseconds", Configuration::tx_timeout)
         .add_option("large_pool_items", "Large payload pool maximum items", Configuration::large_buffer_pool_max_items)
         .add_option("small_pool_items", "Small payload pool maximum items", Configuration::small_buffer_pool_max_items);
 

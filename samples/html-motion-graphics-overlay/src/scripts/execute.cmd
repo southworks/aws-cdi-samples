@@ -12,7 +12,8 @@ SET FFMPEG_CMD=!FFMPEG_PATH!ffmpeg
 SET FFPLAY_CMD=!FFMPEG_PATH!ffplay
 SET FFPROBE_CMD=!FFMPEG_PATH!ffprobe
 SET HTMLSRC_CMD=!HTMLSRC_PATH!htmlsrc
-SET CDIPIPE_CMD=!TOOLS_PATH!cdipipe
+SET CDIPIPE_CMD=!TOOLS_PATH!cdipipe -num_threads 1 -tx_timeout 120000
+::-large_pool_items 40 -small_pool_items 60
 
 SET "FFMPEG_GLOBAL_OPTIONS= -hide_banner -loglevel info"
 SET "FFPLAY_GLOBAL_OPTIONS= -hide_banner -loglevel info"
@@ -30,9 +31,11 @@ SET "VIDEO_IN_PORT=1000"
 SET "AUDIO_IN_PORT=1001"
 SET "VIDEO_OUT_PORT=3000"
 SET "AUDIO_OUT_PORT=3001"
+SET "PORT_NUMBER=2000"
 SET "VIDEO_QUEUE_SIZE=1500"
 SET "AUDIO_QUEUE_SIZE=2000"
-SET "HTMLSRC_QUEUE_SIZE=1000"
+SET "HTMLSRC_QUEUE_SIZE=1500"
+SET "TIME_OFFSET=0.3"
 SET "CHANNEL_TYPE=cdistream"
 SET "ADAPTER_TYPE=socketlibfabric"
 SET "ROLE=both"
@@ -51,6 +54,7 @@ SET "DEFAULT_OVERLAY_CHROMA_COLOR=none"
 SET "DEFAULT_OVERLAY_BACKGROUND_COLOR=none"
 SET "DEFAULT_TX_TIMESTAMP=off"
 SET "DEFAULT_RX_TIMESTAMP=off"
+SET "DEFAULT_KEEP_WINDOWS=false"
 
 :: process command line
 IF "%~1"=="" (GOTO usage)
@@ -220,6 +224,11 @@ IF NOT "%~1"=="" (
         IF "!ERRORLEVEL!"=="0" (SHIFT & GOTO next) ELSE (GOTO exit)
     )
 
+    IF "!PARAMETER_NAME!"=="time_offset" (
+        CALL :ParseValue TIME_OFFSET !PARAMETER_NAME! !PARAMETER_VALUE!
+        IF "!ERRORLEVEL!"=="0" (SHIFT & GOTO next) ELSE (GOTO exit)
+    )
+
     IF "!PARAMETER_NAME!"=="quiet" (
         SET "FFMPEG_CMD=!FFMPEG_CMD! -loglevel quiet"
         SET "FFPLAY_CMD=!FFPLAY_CMD! -loglevel quiet"
@@ -237,6 +246,7 @@ IF NOT "%~1"=="" (
 
     IF "!PARAMETER_NAME!"=="tx_timestamp" (SET TX_TIMESTAMP=1 & GOTO next)
     IF "!PARAMETER_NAME!"=="rx_timestamp" (SET RX_TIMESTAMP=1 & GOTO next)
+    IF "!PARAMETER_NAME!"=="keep" (SET "CONSOLE_MODE=/k" & GOTO next)
 
     ECHO ERROR: Unknown argument '!PARAMETER_NAME!' specified.
     GOTO usage
@@ -283,10 +293,13 @@ IF "!ERRORLEVEL!"=="1" (GOTO exit)
 CALL :ParseValue REMOTE_IP remote_ip !REMOTE_IP! !IP_ADDRESS!
 IF "!ERRORLEVEL!"=="1" (GOTO exit)
 
-CALL :ParseValue PORT_NUMBER port !PORT_NUMBER! 2000
+CALL :ParseValue PORT_NUMBER port !PORT_NUMBER!
 IF "!ERRORLEVEL!"=="1" (GOTO exit)
 
 CALL :ParseOptions OUTPUT_FORMAT output_format !FORMAT_OPTIONS! !OUTPUT_FORMAT!
+IF "!ERRORLEVEL!"=="1" (GOTO exit)
+
+CALL :ParseOptions TIME_OFFSET time_offset !TIME_OFFSET! !TIME_OFFSET!
 IF "!ERRORLEVEL!"=="1" (GOTO exit)
 
 CALL :ParseOptions LOG_LEVEL log_level !LOG_LEVEL_OPTIONS! !LOG_LEVEL! info
@@ -451,7 +464,8 @@ IF DEFINED OVERLAY_SOURCE (
     IF DEFINED OVERLAY_BACKGROUND_COLOR (SET "OVERLAY_INPUT=!OVERLAY_INPUT! -b !OVERLAY_BACKGROUND_COLOR!")
     IF DEFINED OVERLAY_SCALE_FACTOR (SET "OVERLAY_INPUT=!OVERLAY_INPUT! -sf !OVERLAY_SCALE_FACTOR!")
     SET /A OVERLAY_FRAME_SIZE=!OVERLAY_VIEWPORT_WIDTH! * !OVERLAY_VIEWPORT_HEIGHT! * 4
-    SET "OVERLAY_STREAM= -thread_queue_size !HTMLSRC_QUEUE_SIZE! -f image2pipe -vcodec rawvideo -pixel_format bgra -frame_size !OVERLAY_FRAME_SIZE! -video_size !OVERLAY_VIEWPORT_WIDTH!x!OVERLAY_VIEWPORT_HEIGHT! -framerate !OVERLAY_FRAME_RATE! -i -"   
+    ::SET "OVERLAY_STREAM= -thread_queue_size !HTMLSRC_QUEUE_SIZE! -f image2pipe -vcodec rawvideo -pixel_format bgra -frame_size !OVERLAY_FRAME_SIZE! -video_size !OVERLAY_VIEWPORT_WIDTH!x!OVERLAY_VIEWPORT_HEIGHT! -framerate !OVERLAY_FRAME_RATE! -i -"   
+    SET "OVERLAY_STREAM= -re -thread_queue_size !HTMLSRC_QUEUE_SIZE! -f rawvideo -pixel_format bgra -video_size !OVERLAY_VIEWPORT_WIDTH!x!OVERLAY_VIEWPORT_HEIGHT! -i -"
     IF /I "!OVERLAY_POSITION!" == "top-left" (
         SET "OVERLAY_FILTER=!OVERLAY_FILTER!!FILTER_DELIMITER![0]setpts=PTS-STARTPTS[mn];[1]setpts=PTS-STARTPTS,fps=!SOURCE_AVG_FRAME_RATE![ov];[mn][ov]overlay=10:10:eof_action=endall" & SET "FILTER_DELIMITER=, "
     ) ELSE IF /I "!OVERLAY_POSITION!"=="bottom-left" (
@@ -497,19 +511,23 @@ IF /I NOT "!ROLE!"=="transmitter" (
     )
 
     SET "RX_VIDEO_STREAM= -thread_queue_size !VIDEO_QUEUE_SIZE! -pixel_format rgb24 -video_size !SOURCE_WIDTH!x!SOURCE_HEIGHT! -framerate !SOURCE_AVG_FRAME_RATE! -f rawvideo -i tcp://127.0.0.1:!VIDEO_OUT_PORT!"
-    SET "RX_AUDIO_STREAM= -thread_queue_size !AUDIO_QUEUE_SIZE! -f s16le -sample_rate 44100 -channels 2 -i tcp://127.0.0.1:!AUDIO_OUT_PORT!"
+    SET "RX_AUDIO_STREAM= -itsoffset !TIME_OFFSET! -thread_queue_size !AUDIO_QUEUE_SIZE! -f s16le -sample_rate 44100 -channels 2 -i tcp://127.0.0.1:!AUDIO_OUT_PORT!"
     IF DEFINED RX_TIMESTAMP (SET "RECEIVE_PTS=!PTS_OPTIONS!:x=(w-tw-20):y=20:fontcolor=white" & SET "FILTER_DELIMITER=, ")
     IF DEFINED FILTER_DELIMITER (SET "RX_FILTER= -vf "!RECEIVE_PTS!"")
+    ::SET "ENCODER=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS!!RX_AUDIO_STREAM!!RX_VIDEO_STREAM!!RX_FILTER!!ENCODER_OUTPUT!"
     SET "ENCODER=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS!!RX_VIDEO_STREAM!!RX_AUDIO_STREAM!!RX_FILTER!!ENCODER_OUTPUT!"
 )
 
 :: set up channel
 IF /I NOT "!ROLE!"=="receiver" (
+    :: -frame_rate !SOURCE_AVG_FRAME_RATE!
     SET "CHANNEL_TRANSMITTER=!CDIPIPE_CMD! -role transmitter -channel !CHANNEL_TYPE! -adapter !ADAPTER_TYPE! -local_ip !LOCAL_IP! -remote_ip !REMOTE_IP! -port !PORT_NUMBER! -video_in_port !VIDEO_IN_PORT! -audio_in_port !AUDIO_IN_PORT! -frame_width !SOURCE_WIDTH! -frame_height !SOURCE_HEIGHT! -log_level !LOG_LEVEL!"
+    rem SET "CHANNEL_TRANSMITTER=!CDIPIPE_CMD! -role transmitter -channel !CHANNEL_TYPE! -adapter !ADAPTER_TYPE! -local_ip !LOCAL_IP! -remote_ip !REMOTE_IP! -port !PORT_NUMBER! -video_in_port !VIDEO_IN_PORT! -audio_in_port !AUDIO_IN_PORT! -frame_width !SOURCE_WIDTH! -frame_height !SOURCE_HEIGHT! -log_level !LOG_LEVEL! -log_file cdi_tx.log"
 )
 
 IF /I NOT "!ROLE!"=="transmitter" (
-    SET "CHANNEL_RECEIVER=!CDIPIPE_CMD! -role receiver -channel !CHANNEL_TYPE! -adapter !ADAPTER_TYPE! -local_ip !LOCAL_IP! -port !PORT_NUMBER! -video_out_port !VIDEO_OUT_PORT! -audio_out_port !AUDIO_OUT_PORT! -frame_width !SOURCE_WIDTH! -frame_height !SOURCE_HEIGHT! -log_level !LOG_LEVEL!"
+    SET "CHANNEL_RECEIVER=!CDIPIPE_CMD! -role receiver -channel !CHANNEL_TYPE! -adapter !ADAPTER_TYPE! -local_ip !LOCAL_IP! -port !PORT_NUMBER! -video_out_port !VIDEO_OUT_PORT! -audio_out_port !AUDIO_OUT_PORT! -log_level !LOG_LEVEL!"
+    rem SET "CHANNEL_RECEIVER=!CDIPIPE_CMD! -role receiver -channel !CHANNEL_TYPE! -adapter !ADAPTER_TYPE! -local_ip !LOCAL_IP! -port !PORT_NUMBER! -video_out_port !VIDEO_OUT_PORT! -audio_out_port !AUDIO_OUT_PORT! -log_level !LOG_LEVEL! -log_file cdi_rx.log"
 )
 
 :: set up player/streamer
@@ -545,7 +563,7 @@ GOTO check_tx
 :transmitter
 START !WINDOW_MODE! "CHANNEL TRANSMITTER" CMD !CONSOLE_MODE! "PROMPT TRANSMITTER$G&&!CHANNEL_TRANSMITTER!"
 TIMEOUT 3 > nul
-START !WINDOW_MODE! "INPUT" CMD !CONSOLE_MODE! "PROMPT SOURCE$G&&!SOURCE!"
+START !WINDOW_MODE! "SOURCE" CMD !CONSOLE_MODE! "PROMPT SOURCE$G&&!SOURCE!"
 GOTO exit
 
 :usage
@@ -568,7 +586,7 @@ ECHO     -local_ip ^<ip_address^>                : local IP address (optional, d
 ECHO                                             of first local adapter when -remote_ip is specified)
 ECHO     -remote_ip ^<ip_address^>               : remote IP address (optional, applies to transmitter only, default 127.0.0.1
 ECHO                                             or IP address of first local adapter when -local_ip is specified)
-ECHO     -port ^<port_number^>                   : destination port number (optional, default 2000)
+ECHO     -port ^<port_number^>                   : destination port number (optional, default !PORT_NUMBER!)
 ECHO     -output ^<destination^>                 : output file name or URL (required for stream and store receiver modes)
 ECHO     -output_format ^<type^>                 : output format type: rgb ^| mp4 (optional, default: !OUTPUT_FORMAT!)
 ECHO.
@@ -589,8 +607,10 @@ ECHO     -video_in_port ^<port_number^>          : video input port number (opti
 ECHO     -audio_in_port ^<port_number^>          : audio input port number (optional, default: !AUDIO_IN_PORT!)
 ECHO     -video_out_port ^<port_number^>         : video input port number (optional, default: !VIDEO_OUT_PORT!)
 ECHO     -audio_out_port ^<port_number^>         : audio input port number (optional, default: !AUDIO_OUT_PORT!)
+ECHO     -time_offset ^<seconds^>                : audio/video stream time offset (optional, default: !TIME_OFFSET!)
 ECHO     -rx_timestamp                         : display receiver timestamp overlay (optional, default: !DEFAULT_RX_TIMESTAMP!)
 ECHO     -tx_timestamp                         : display transmitter timestamp overlay (optional, default: !DEFAULT_TX_TIMESTAMP!)
+ECHO     -keep                                 : keep tool windows open (optional, default: !DEFAULT_KEEP_WINDOWS!)
 ECHO.
 ECHO IMPORTANT: set the following environment variables before using or configure all required executables in the path.
 ECHO     FFMPEG_PATH : path to ffmpeg.exe, ffplay.exe, and ffprobe.exe

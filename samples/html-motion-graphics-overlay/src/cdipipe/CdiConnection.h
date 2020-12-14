@@ -31,5 +31,6 @@ namespace CdiTools
         static void log_message_callback(const CdiLogMessageCbData* cb_data_ptr);
 
         CdiConnectionHandle connection_handle_;
+        int tx_timeout_;
     };
 }

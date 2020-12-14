@@ -24,6 +24,7 @@ namespace CdiTools
         static std::string local_ip;
         static std::string remote_ip;
         static int buffer_delay;
+        static int tx_timeout;
 
         // buffer pool configuration
         static const uint32_t large_buffer_pool_item_size;
