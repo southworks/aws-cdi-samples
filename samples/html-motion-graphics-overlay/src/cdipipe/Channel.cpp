@@ -152,7 +152,7 @@ void CdiTools::Channel::read_complete(
 #ifdef TRACE_PAYLOADS
                 << " (" << payload->sequence() << ")"
 #endif
-                << ", size: " << payload->size()
+                << ", size: " << payload->get_size()
                 << ", queue length/size: " << connection_buffer.size() << "/" << connection_buffer.capacity()
                 << ".";
         }
@@ -195,7 +195,7 @@ void CdiTools::Channel::async_write(
 #ifdef TRACE_PAYLOADS
         << " (" << payload->sequence() << ")"
 #endif
-        << ", size: " << payload->size()
+        << ", size: " << payload->get_size()
         << ", queue length/size: " << connection_buffer.size() << "/" << connection_buffer.capacity()
         << "...";
 
@@ -222,7 +222,7 @@ void CdiTools::Channel::write_complete(
 #ifdef TRACE_PAYLOADS
         auto payload = connection_buffer.front();
         auto sequence = payload != nullptr ? payload->sequence() : 0;
-        auto size = payload != nullptr ? payload->size() : 0;
+        auto size = payload != nullptr ? payload->get_size() : 0;
 #endif
 
         LOG_DEBUG << "Transmitted payload #" << stream->id() << ":" << payloads_transmitted

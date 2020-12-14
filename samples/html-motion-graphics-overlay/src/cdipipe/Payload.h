@@ -16,7 +16,8 @@ namespace CdiTools
         ~PayloadData();
 
         inline int stream_identifier() const { return stream_identifier_; }
-        inline int size() const { return total_data_size; }
+        inline int get_size() const { return total_data_size; }
+        inline void set_size(int size) { total_data_size = size; sgl_entry_.size_in_bytes = size; }
     #ifdef TRACE_PAYLOADS
         inline int sequence() const { return sequence_number_; }
     #endif
@@ -27,14 +28,9 @@ namespace CdiTools
     private:
         PayloadData(uint16_t stream_identifier, void* buffer_ptr, size_t size);
         PayloadData(CdiSgList sgl, uint16_t stream_identifier);
-        enum class PayloadClass
-        {
-            Sgl,
-            Buffer
-        };
 
         uint16_t stream_identifier_;
-        PayloadClass payload_class_;
+        size_t allocated_size_;
         CdiSglEntry sgl_entry_;
 
         static Logger logger_;

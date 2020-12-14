@@ -152,6 +152,7 @@ void CdiTools::TcpConnection::async_receive(ReceiveHandler handler)
                     << ", size:" << bytes_received << "...";
             }
 
+            payload->set_size(static_cast<int>(bytes_received));
             notify_payload_received(handler, ec, payload);
         });
     }
@@ -172,11 +173,9 @@ void CdiTools::TcpConnection::async_receive(ReceiveHandler handler)
                     << " (" << payload->sequence() << ")"
 #endif
                     << ", size:" << bytes_received << "...";
-                if (bytes_received < payload->size()) {
-                    LOG_WARNING << "Payload size mismatch, expected: " << payload->size() << ", received: " << bytes_received;
-                }
             }
 
+            payload->set_size(static_cast<int>(bytes_received));
             notify_payload_received(handler, ec, payload);
         });
     }
