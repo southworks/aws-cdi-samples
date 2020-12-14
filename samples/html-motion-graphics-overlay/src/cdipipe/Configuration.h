@@ -10,15 +10,19 @@ namespace CdiTools
 {
     struct Configuration
     {
+        // general settings
+        static LogLevel log_level;
+        static std::string log_file;
+
+        // channel settings
         static ChannelType channel_type;
+        static bool inline_handlers;
+        static int num_threads;
+
+        // CDI settings
         static NetworkAdapterType adapter_type;
         static std::string local_ip;
         static std::string remote_ip;
-        static LogLevel log_level;
-        static std::string log_file;
-        static bool inline_handlers;
-        static bool disable_audio;
-        static int num_threads;
         static int buffer_delay;
 
         // buffer pool configuration
@@ -43,6 +47,7 @@ namespace CdiTools
         static int frame_rate_denominator;
 
         // audio configuration settings
+        static bool disable_audio;
         static uint16_t audio_stream_id;
         static AudioChannelGrouping audio_channel_grouping;
         static AudioSamplingRate audio_sampling_rate;

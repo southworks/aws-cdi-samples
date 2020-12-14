@@ -3,15 +3,19 @@
 
 using namespace CdiTools;
 
-ChannelType Configuration::channel_type{ ChannelType::CdiStream };
-NetworkAdapterType Configuration::adapter_type{ NetworkAdapterType::SocketLibFabric };
+// general settings
 LogLevel Configuration::log_level{ LogLevel::Info };
 std::string Configuration::log_file;
+
+// channel settings
+ChannelType Configuration::channel_type{ ChannelType::CdiStream };
+bool Configuration::inline_handlers{ false };
+int Configuration::num_threads{ 4 };
+
+// CDI settings
+NetworkAdapterType Configuration::adapter_type{ NetworkAdapterType::SocketLibFabric };
 std::string Configuration::local_ip{ "127.0.0.1" };
 std::string Configuration::remote_ip{ "127.0.0.1" };
-bool Configuration::inline_handlers{ false };
-bool Configuration::disable_audio{ false };
-int Configuration::num_threads{ 4 };
 int Configuration::buffer_delay{ 0 };
 
 // buffer pool configuration
@@ -36,6 +40,7 @@ int Configuration::frame_rate_numerator = 24;
 int Configuration::frame_rate_denominator = 1;
 
 // audio configuration settings
+bool Configuration::disable_audio{ false };
 uint16_t Configuration::audio_stream_id = 2;
 AudioChannelGrouping Configuration::audio_channel_grouping = AudioChannelGrouping::Stereo;
 AudioSamplingRate Configuration::audio_sampling_rate = AudioSamplingRate::Rate48kHz;
