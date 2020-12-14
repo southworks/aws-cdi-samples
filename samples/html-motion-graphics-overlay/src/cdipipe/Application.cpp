@@ -97,6 +97,16 @@ int CdiTools::Application::get_pool_free_buffer_count(size_t payload_size)
     return count;
 }
 
+const char* CdiTools::Application::get_pool_name(size_t payload_size)
+{
+    CdiPoolHandle pool_handle = get_pool_handle(payload_size);
+    assert(pool_handle != NULL);
+
+    const char* name = CdiPoolGetName(pool_handle);
+
+    return name;
+}
+
 CdiPoolHandle CdiTools::Application::get_pool_handle(size_t payload_size)
 {
     if (payload_size <= small_buffer_pool_item_size_) {

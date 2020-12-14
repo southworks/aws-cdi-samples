@@ -40,6 +40,7 @@ namespace CdiTools
         void* get_pool_buffer(size_t payload_size);
         void free_pool_buffer(void* buffer_ptr, size_t payload_size);
         int get_pool_free_buffer_count(size_t payload_size);
+        const char* get_pool_name(size_t payload_size);
         static Application* get() { return instance_; }
         static int run(ChannelRole channel_role, bool show_channel_config);
 
