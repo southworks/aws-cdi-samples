@@ -112,12 +112,14 @@ void CdiTools::CdiConnection::disconnect(std::error_code& ec)
 {
     if (connection_handle_ != NULL) {
         CdiReturnStatus rs = CdiCoreConnectionDestroy(connection_handle_);
-        if (CdiReturnStatus::kCdiStatusOk != rs) {
+        if (CdiReturnStatus::kCdiStatusOk == rs) {
+            LOG_DEBUG << "CDI connection to " << host_name_ << ":" << port_number_ << " was closed.";
+        }
+        else {
             LOG_DEBUG << "Error closing CDI connection: " << CdiCoreStatusToString(rs) << ", code: " << rs << ".";
         }
 
         connection_handle_ = NULL;
-        LOG_DEBUG << "CDI connection to " << host_name_ << ":" << port_number_ << " was closed.";
     }
 }
 
