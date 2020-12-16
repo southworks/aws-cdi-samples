@@ -455,7 +455,6 @@ ECHO.
 :quiet
 :: set up overlay
 IF DEFINED OVERLAY_SOURCE (
-    ::SET "OVERLAY_INPUT=!HTMLSRC_CMD! "!OVERLAY_SOURCE!" -log_level !LOG_LEVEL!"
     SET "OVERLAY_INPUT=!HTMLSRC_CMD! "!OVERLAY_SOURCE!""
     IF DEFINED OVERLAY_WINDOW_WIDTH (SET "OVERLAY_INPUT=!OVERLAY_INPUT! -ws !OVERLAY_WINDOW_WIDTH!,!OVERLAY_WINDOW_HEIGHT!")
     IF DEFINED OVERLAY_VIEWPORT_WIDTH (SET "OVERLAY_INPUT=!OVERLAY_INPUT! -vo !OVERLAY_VIEWPORT_LEFT!,!OVERLAY_VIEWPORT_TOP! -vs !OVERLAY_VIEWPORT_WIDTH!,!OVERLAY_VIEWPORT_HEIGHT!")
@@ -463,8 +462,7 @@ IF DEFINED OVERLAY_SOURCE (
     IF DEFINED OVERLAY_BACKGROUND_COLOR (SET "OVERLAY_INPUT=!OVERLAY_INPUT! -b !OVERLAY_BACKGROUND_COLOR!")
     IF DEFINED OVERLAY_SCALE_FACTOR (SET "OVERLAY_INPUT=!OVERLAY_INPUT! -sf !OVERLAY_SCALE_FACTOR!")
     SET /A OVERLAY_FRAME_SIZE=!OVERLAY_VIEWPORT_WIDTH! * !OVERLAY_VIEWPORT_HEIGHT! * 4
-    ::SET "OVERLAY_STREAM= -thread_queue_size !HTMLSRC_QUEUE_SIZE! -f image2pipe -vcodec rawvideo -pixel_format bgra -frame_size !OVERLAY_FRAME_SIZE! -video_size !OVERLAY_VIEWPORT_WIDTH!x!OVERLAY_VIEWPORT_HEIGHT! -framerate !OVERLAY_FRAME_RATE! -i -"   
-    SET "OVERLAY_STREAM= -re -thread_queue_size !HTMLSRC_QUEUE_SIZE! -f rawvideo -pixel_format bgra -video_size !OVERLAY_VIEWPORT_WIDTH!x!OVERLAY_VIEWPORT_HEIGHT! -i -"
+    SET "OVERLAY_STREAM= -thread_queue_size !HTMLSRC_QUEUE_SIZE! -f rawvideo -pixel_format bgra -video_size !OVERLAY_VIEWPORT_WIDTH!x!OVERLAY_VIEWPORT_HEIGHT! -framerate !OVERLAY_FRAME_RATE! -i -"
     IF /I "!OVERLAY_POSITION!" == "top-left" (
         SET "OVERLAY_FILTER=!OVERLAY_FILTER!!FILTER_DELIMITER![0]setpts=PTS-STARTPTS[mn];[1]setpts=PTS-STARTPTS,fps=!SOURCE_AVG_FRAME_RATE![ov];[mn][ov]overlay=10:10:eof_action=endall" & SET "FILTER_DELIMITER=, "
     ) ELSE IF /I "!OVERLAY_POSITION!"=="bottom-left" (
@@ -502,7 +500,6 @@ IF /I NOT "!ROLE!"=="transmitter" (
     )
 
     SET "ENCODER_RAW= -an -c:v rawvideo -pix_fmt rgb24 -video_size !SOURCE_WIDTH!x!SOURCE_HEIGHT! -r !SOURCE_AVG_FRAME_RATE!!BIT_RATE!!OUTPUT_FORMAT!"
-    :: TODO: https://trac.ffmpeg.org/wiki/Encode/H.264
     IF /I "!RECEIVER_MODE!"=="stream" (
         SET "ENCODER_OUTPUT= -ac 2 -c:v libx264 -x264opts sliced-threads -pix_fmt yuv420p -crf 21 -preset veryfast -tune zerolatency -vsync cfr -g 10 -b:a 128k -f hls -hls_time 10 -hls_playlist_type event"
     ) ELSE (
@@ -513,7 +510,6 @@ IF /I NOT "!ROLE!"=="transmitter" (
     SET "RX_AUDIO_STREAM= -itsoffset !TIME_OFFSET! -thread_queue_size !AUDIO_QUEUE_SIZE! -f s16le -sample_rate 44100 -channels 2 -i tcp://127.0.0.1:!AUDIO_OUT_PORT!"
     IF DEFINED RX_TIMESTAMP (SET "RECEIVE_PTS=!PTS_OPTIONS!:x=(w-tw-20):y=20:fontcolor=white" & SET "FILTER_DELIMITER=, ")
     IF DEFINED FILTER_DELIMITER (SET "RX_FILTER= -vf "!RECEIVE_PTS!"")
-    ::SET "ENCODER=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS!!RX_AUDIO_STREAM!!RX_VIDEO_STREAM!!RX_FILTER!!ENCODER_OUTPUT!"
     SET "ENCODER=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS!!RX_VIDEO_STREAM!!RX_AUDIO_STREAM!!RX_FILTER!!ENCODER_OUTPUT!"
 )
 
@@ -521,12 +517,10 @@ IF /I NOT "!ROLE!"=="transmitter" (
 IF /I NOT "!ROLE!"=="receiver" (
     :: -frame_rate !SOURCE_AVG_FRAME_RATE!
     SET "CHANNEL_TRANSMITTER=!CDIPIPE_CMD! -role transmitter -channel !CHANNEL_TYPE! -adapter !ADAPTER_TYPE! -local_ip !LOCAL_IP! -remote_ip !REMOTE_IP! -port !PORT_NUMBER! -video_in_port !VIDEO_IN_PORT! -audio_in_port !AUDIO_IN_PORT! -frame_width !SOURCE_WIDTH! -frame_height !SOURCE_HEIGHT! -log_level !LOG_LEVEL!"
-    rem SET "CHANNEL_TRANSMITTER=!CDIPIPE_CMD! -role transmitter -channel !CHANNEL_TYPE! -adapter !ADAPTER_TYPE! -local_ip !LOCAL_IP! -remote_ip !REMOTE_IP! -port !PORT_NUMBER! -video_in_port !VIDEO_IN_PORT! -audio_in_port !AUDIO_IN_PORT! -frame_width !SOURCE_WIDTH! -frame_height !SOURCE_HEIGHT! -log_level !LOG_LEVEL! -log_file cdi_tx.log"
 )
 
 IF /I NOT "!ROLE!"=="transmitter" (
     SET "CHANNEL_RECEIVER=!CDIPIPE_CMD! -role receiver -channel !CHANNEL_TYPE! -adapter !ADAPTER_TYPE! -local_ip !LOCAL_IP! -port !PORT_NUMBER! -video_out_port !VIDEO_OUT_PORT! -audio_out_port !AUDIO_OUT_PORT! -log_level !LOG_LEVEL!"
-    rem SET "CHANNEL_RECEIVER=!CDIPIPE_CMD! -role receiver -channel !CHANNEL_TYPE! -adapter !ADAPTER_TYPE! -local_ip !LOCAL_IP! -port !PORT_NUMBER! -video_out_port !VIDEO_OUT_PORT! -audio_out_port !AUDIO_OUT_PORT! -log_level !LOG_LEVEL! -log_file cdi_rx.log"
 )
 
 :: set up player/streamer
