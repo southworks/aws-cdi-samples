@@ -6,6 +6,7 @@
 
 #include <boost/bimap.hpp>
 #include <boost/bimap/multiset_of.hpp>
+#include <boost/asio/steady_timer.hpp>
 
 #include "ChannelType.h"
 #include "ChannelRole.h"
@@ -47,9 +48,9 @@ namespace CdiTools
         std::vector<std::shared_ptr<Stream>> get_connection_streams(const std::string& connection_name);
         void show_stream_connections(uint16_t stream_identifier, ConnectionDirection direction = ConnectionDirection::Both);
         void open_connections(ChannelHandler handler);
-        void async_read(std::shared_ptr<IConnection> connection, const std::error_code& ec, ChannelHandler handler);
+        void async_read(std::shared_ptr<IConnection> connection, const std::error_code& ec, ChannelHandler handler, std::shared_ptr<boost::asio::steady_timer> timer = nullptr);
         void read_complete(std::shared_ptr<IConnection> connection, const std::error_code& ec, Payload payload, ChannelHandler handler);
-        void async_write(std::shared_ptr<IConnection> connection, const std::error_code& ec, ChannelHandler handler);
+        void async_write(std::shared_ptr<IConnection> connection, const std::error_code& ec, ChannelHandler handler, std::shared_ptr<boost::asio::steady_timer> timer = nullptr);
         void write_complete(std::shared_ptr<IConnection> connection, std::shared_ptr<Stream> stream, const std::error_code& ec, ChannelHandler handler);
 
         std::string name_;

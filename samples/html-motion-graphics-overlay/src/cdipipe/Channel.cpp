@@ -15,6 +15,8 @@
 #include "AudioStream.h"
 #include "AncillaryStream.h"
 
+using boost::asio::steady_timer;
+
 CdiTools::Channel::Channel(const std::string& name)
     : name_{ name }
     , logger_{ name }
@@ -111,7 +113,8 @@ void CdiTools::Channel::open_connections(ChannelHandler handler)
 void CdiTools::Channel::async_read(
     std::shared_ptr<IConnection> connection,
     const std::error_code& ec,
-    ChannelHandler handler)
+    ChannelHandler handler,
+    std::shared_ptr<steady_timer> timer)
 {
     if (!is_active()) return;
 
@@ -123,6 +126,22 @@ void CdiTools::Channel::async_read(
         }
 
         LOG_WARNING << "Error receiving a payload: " << ec.message();
+    }
+
+    auto payload_size = connection->get_stream(0)->payload_size();
+    if (Application::get()->get_pool_free_buffer_count(payload_size) == 0) {
+        if (timer == nullptr) {
+            LOG_WARNING << "Memory pool '" << Application::get()->get_pool_name(payload_size) << "' is exhausted"
+                << ". Throttling input '" << connection->get_name() << "'...";
+        }
+
+        if (timer == nullptr) {
+            timer = std::make_shared<steady_timer>(io_);
+        }
+
+        timer->expires_from_now(std::chrono::milliseconds(300)); // TODO: determine suitable value
+        timer->async_wait(std::bind(&Channel::async_read, shared_from_this(), connection, std::placeholders::_1, handler, timer));
+        return;
     }
 
     // receiving next payload for this connection
@@ -177,7 +196,8 @@ void CdiTools::Channel::read_complete(
 void CdiTools::Channel::async_write(
     std::shared_ptr<IConnection> connection,
     const std::error_code& ec,
-    ChannelHandler handler)
+    ChannelHandler handler,
+    std::shared_ptr<steady_timer> timer)
 {
     if (!is_active()) return;
 
@@ -193,8 +213,12 @@ void CdiTools::Channel::async_write(
 
     auto& buffer = connection->get_buffer();
     if (buffer.is_empty()) {
-        std::this_thread::yield();
-        post(io_, std::bind(&Channel::async_write, shared_from_this(), connection, ec, handler));
+        if (timer == nullptr) {
+            timer = std::make_shared<steady_timer>(io_);
+        }
+
+        timer->expires_from_now(std::chrono::milliseconds(15));
+        timer->async_wait(std::bind(&Channel::async_write, shared_from_this(), connection, std::error_code(), handler, timer));
         return;
     }
 
