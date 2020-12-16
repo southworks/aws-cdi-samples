@@ -288,6 +288,8 @@ void CdiTools::Channel::shutdown()
         else {
             LOG_INFO << "Connection '" << connection->get_name() << "' closed successfully.";
         }
+
+        connection->get_buffer().clear();
     }
 }
 
