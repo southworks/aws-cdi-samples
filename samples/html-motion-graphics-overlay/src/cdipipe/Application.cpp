@@ -245,6 +245,7 @@ int CdiTools::Application::run(ChannelRole channel_role, bool show_channel_confi
                     if (key == 'i' || key == 'I') Logger::set_level(LogLevel::Info);
                     if (key == 'd' || key == 'D') Logger::set_level(LogLevel::Debug);
                     if (key == 't' || key == 'T') Logger::set_level(LogLevel::Trace);
+                    if (key == 's' || key == 'S') channel->show_status();
                 }
             }
 

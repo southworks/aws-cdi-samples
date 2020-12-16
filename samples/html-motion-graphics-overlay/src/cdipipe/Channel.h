@@ -39,6 +39,7 @@ namespace CdiTools
         inline bool is_active() { return active_ != nullptr; }
         void validate_configuration();
         void show_configuration();
+        void show_status();
 
     private:
         std::shared_ptr<Stream> get_stream(uint16_t stream_identifier);

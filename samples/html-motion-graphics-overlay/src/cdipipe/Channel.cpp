@@ -373,6 +373,24 @@ void CdiTools::Channel::show_configuration()
     }
 }
 
+void CdiTools::Channel::show_status()
+{
+    for (auto&& stream : streams_) {
+        std::ostringstream queue_length;
+        for (auto&& connection : get_stream_connections(stream->id(), ConnectionDirection::Out)) {
+            auto& buffer = connection->get_buffer();
+            queue_length << (queue_length.tellp() > 0 ? ", " : "") << connection->get_name()
+                << ": " << buffer.size() << "/" << buffer.capacity();
+        }
+
+        LOG_INFO << "Stream #" << stream->id()
+            << " - Rx payloads: " << stream->get_payloads_received()
+            << ", Tx payloads: " << stream->get_payloads_transmitted()
+            << ", errors: " << stream->get_payload_errors()
+            << ", queues: " << queue_length.str();
+    }
+}
+
 std::shared_ptr<CdiTools::Stream> CdiTools::Channel::get_stream(uint16_t stream_identifier)
 {
     auto stream = std::find_if(streams_.begin(), streams_.end(),
