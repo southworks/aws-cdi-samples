@@ -6,6 +6,7 @@
 #include <boost/range/iterator_range.hpp>
 #include <boost/thread.hpp>
 
+#include "Application.h"
 #include "PayloadBuffer.h"
 #include "Channel.h"
 #include "Errors.h"
@@ -13,11 +14,6 @@
 #include "VideoStream.h"
 #include "AudioStream.h"
 #include "AncillaryStream.h"
-
-using namespace boost::asio;
-using std::cout;
-using std::setw;
-using std::left;
 
 CdiTools::Channel::Channel(const std::string& name)
     : name_{ name }
@@ -58,10 +54,24 @@ void CdiTools::Channel::open_connections(ChannelHandler handler)
         auto connection_handler = [=](const std::error_code& ec) {
             if (!ec) {
                 LOG_INFO << "Connection '" << connection->get_name() << "' established successfully.";
-                // start the read loop for the input connections
                 if (is_active() && ConnectionDirection::In == connection->get_direction()) {
                     if (connection->get_type() != ConnectionType::Cdi) {
-                        async_read(connection, std::error_code(), handler);
+                        // wait until all input connections for stream are ready
+                        bool stream_ready = true;
+                        for (auto&& stream : get_connection_streams(connection->get_name())) {
+                            for (auto&& input : get_stream_connections(stream->id(), ConnectionDirection::In)) {
+                                stream_ready = stream_ready && input->is_connected();
+                            }
+                        }
+
+                        if (stream_ready) {
+                            // start the read loop for the input connections
+                            for (auto&& stream : get_connection_streams(connection->get_name())) {
+                                for (auto&& input : get_stream_connections(stream->id(), ConnectionDirection::In)) {
+                                    async_read(input, std::error_code(), handler);
+                                }
+                            }
+                        }
                     }
                     else {
                         // set the receive handler for CDI, which starts to receive as soon as the connection is opened
@@ -255,8 +265,6 @@ void CdiTools::Channel::shutdown()
             LOG_INFO << "Connection '" << connection->get_name() << "' closed successfully.";
         }
     }
-
-    io_.stop();
 }
 
 std::shared_ptr<CdiTools::IConnection> CdiTools::Channel::add_input(ConnectionType connection_type, const std::string& name,
@@ -354,7 +362,7 @@ void CdiTools::Channel::show_configuration()
 
     std::cout << "# Inputs\n";
     for (auto&& connection : inputs) {
-        std::cout << "  [" << setw(12) << left << connection->get_name() << "] "
+        std::cout << "  [" << std::setw(12) << std::left << connection->get_name() << "] "
             << "type: " << typeid(*connection).name()
             << "\n";
         for (auto&& stream : get_connection_streams(connection->get_name())) {
@@ -364,7 +372,7 @@ void CdiTools::Channel::show_configuration()
 
     std::cout << "\n# Outputs\n";
     for (auto&& connection : outputs) {
-        std::cout << "  [" << setw(12) << left << connection->get_name() << "] "
+        std::cout << "  [" << std::setw(12) << std::left << connection->get_name() << "] "
             << "type: " << typeid(*connection).name()
             << "\n";
         for (auto&& stream : get_connection_streams(connection->get_name())) {
@@ -379,7 +387,7 @@ void CdiTools::Channel::show_status()
         std::ostringstream queue_length;
         for (auto&& connection : get_stream_connections(stream->id(), ConnectionDirection::Out)) {
             auto& buffer = connection->get_buffer();
-            queue_length << (queue_length.tellp() > 0 ? ", " : "") << connection->get_name()
+            queue_length << (queue_length.tellp() > 0 ? ", " : "") << connection->get_name() 
                 << ": " << buffer.size() << "/" << buffer.capacity();
         }
 
