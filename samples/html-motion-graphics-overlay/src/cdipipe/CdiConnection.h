@@ -21,9 +21,19 @@ namespace CdiTools
         inline ConnectionType get_type() const override { return ConnectionType::Cdi; }
 
     private:
-        ConnectHandler connect_handler_;
-        ReceiveHandler receive_handler_;
-        TransmitHandler transmit_handler_;
+        template <typename T>
+        struct CdiCallbackData
+        {
+            std::shared_ptr<Connection> connection;
+            T handler;
+        };
+
+        typedef CdiCallbackData<ConnectHandler> ConnectCallbackData;
+        typedef CdiCallbackData<ReceiveHandler> ReceiveCallbackData;
+        typedef CdiCallbackData<TransmitHandler> TransmitCallbackData;
+
+        ConnectCallbackData connect_callback_;
+        ReceiveCallbackData receive_callback_;
 
         static void on_connection_change(const CdiCoreConnectionCbData* cb_data_ptr);
         static void on_payload_received(const CdiAvmRxCbData* cb_data_ptr);

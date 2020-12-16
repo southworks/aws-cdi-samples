@@ -15,6 +15,8 @@ CdiTools::CdiConnection::CdiConnection(const std::string& name, const std::strin
     ConnectionMode connection_mode, ConnectionDirection connection_direction, int buffer_size, io_context& io)
     : Connection(name, host_name, port_number, connection_mode, connection_direction, buffer_size, io)
     , connection_handle_{ NULL }
+    , receive_callback_{}
+    , connect_callback_{}
     , tx_timeout_{ Configuration::tx_timeout > 0
         ? Configuration::tx_timeout : (1000000 * Configuration::frame_rate_denominator) / Configuration::frame_rate_numerator }
 {
@@ -32,6 +34,8 @@ void CdiTools::CdiConnection::async_connect(ConnectHandler handler)
         return;
     }
 
+    connect_callback_ = { shared_from_this(), handler };
+
     CdiLogMethodData log_method_data = {};
     log_method_data.log_method = kLogMethodCallback;
     log_method_data.callback_data.log_msg_cb_ptr = &log_message_callback;
@@ -45,7 +49,7 @@ void CdiTools::CdiConnection::async_connect(ConnectHandler handler)
     config_data.connection_name_str = name_.c_str();
     config_data.connection_log_method_data_ptr = &log_method_data;
     config_data.connection_cb_ptr = &on_connection_change;
-    config_data.connection_user_cb_param = this;
+    config_data.connection_user_cb_param = &connect_callback_;
     config_data.stats_cb_ptr = NULL;
     config_data.stats_user_cb_param = NULL;
     config_data.stats_config.stats_period_seconds = 0;
@@ -61,8 +65,6 @@ void CdiTools::CdiConnection::async_connect(ConnectHandler handler)
         notify_connection_change(handler, connection_error::connection_failure);
         return;
     }
-
-    connect_handler_ = handler;
 }
 
 void CdiTools::CdiConnection::async_accept(ConnectHandler handler)
@@ -71,6 +73,8 @@ void CdiTools::CdiConnection::async_accept(ConnectHandler handler)
         notify_connection_change(handler, connection_error::already_connected);
         return;
     }
+
+    connect_callback_ = { shared_from_this(), handler };
 
     CdiLogMethodData log_method_data = {};
     log_method_data.log_method = kLogMethodCallback;
@@ -81,20 +85,18 @@ void CdiTools::CdiConnection::async_accept(ConnectHandler handler)
     config_data.buffer_delay_ms = Configuration::buffer_delay;
     config_data.rx_buffer_type = CdiBufferType::kCdiSgl;
     config_data.linear_buffer_size = 0;
-    config_data.user_cb_param = this;
+    config_data.user_cb_param = &receive_callback_;
     config_data.adapter_handle = Application::get()->get_adapter_handle();
     config_data.dest_port = port_number_;
     config_data.thread_core_num = -1;
     config_data.connection_name_str = name_.c_str();
     config_data.connection_log_method_data_ptr = &log_method_data;
     config_data.connection_cb_ptr = &on_connection_change;
-    config_data.connection_user_cb_param = this;
+    config_data.connection_user_cb_param = &connect_callback_;
     config_data.stats_cb_ptr = NULL;
     config_data.stats_user_cb_param = NULL;
     config_data.stats_config.stats_period_seconds = 0;
     config_data.stats_config.disable_cloudwatch_stats = true;
-
-    connect_handler_ = handler;
 
     LOG_DEBUG << "Listening for CDI connections at " << Application::get()->get_adapter_ip_address() << ":" << port_number_ << "...";
 
@@ -130,7 +132,7 @@ void CdiTools::CdiConnection::async_receive(ReceiveHandler handler)
         return;
     }
 
-    receive_handler_ = handler;
+    receive_callback_ = { shared_from_this(), handler };
 }
 
 void CdiTools::CdiConnection::async_transmit(Payload payload, TransmitHandler handler)
@@ -140,18 +142,17 @@ void CdiTools::CdiConnection::async_transmit(Payload payload, TransmitHandler ha
         return;
     }
 
-    transmit_handler_ = handler;
+    void* callback_data = new TransmitCallbackData{ shared_from_this(), handler };
 
     CdiAvmTxPayloadConfig payload_config = {};
+    payload_config.core_config_data.user_cb_param = callback_data;
+    payload_config.avm_extra_data.stream_identifier = payload->stream_identifier();
+    payload_config.core_config_data.unit_size = 0;
 #ifdef TRACE_PAYLOADS
     payload_config.core_config_data.core_extra_data.payload_user_data = payload->sequence();
 #else
     payload_config.core_config_data.core_extra_data.payload_user_data = 0;
 #endif
-    payload_config.core_config_data.user_cb_param = this;
-    payload_config.core_config_data.unit_size = 0;
-
-    payload_config.avm_extra_data.stream_identifier = payload->stream_identifier();
 
     Cdi::set_ptp_timestamp(payload_config.core_config_data.core_extra_data.origination_ptp_timestamp);
 
@@ -199,8 +200,12 @@ void CdiTools::CdiConnection::async_transmit(Payload payload, TransmitHandler ha
 
 void CdiTools::CdiConnection::on_connection_change(const CdiCoreConnectionCbData* cb_data_ptr)
 {
-    auto self = static_cast<CdiConnection*>(cb_data_ptr->connection_user_cb_param);
+    auto callback_data = static_cast<ConnectCallbackData*>(cb_data_ptr->connection_user_cb_param);
+    auto self = std::dynamic_pointer_cast<CdiConnection>(callback_data->connection);
+    assert(self != nullptr);
+
     auto connection_status = cb_data_ptr->status_code;
+
     self->set_status(
         CdiConnectionStatus::kCdiConnectionStatusConnected == connection_status ? ConnectionStatus::Open : ConnectionStatus::Closed);
 
@@ -214,19 +219,17 @@ void CdiTools::CdiConnection::on_connection_change(const CdiCoreConnectionCbData
             self->logger_.error() << "CDI connection connection failure for stream [" << cb_data_ptr->stream_identifier << "]: " << cb_data_ptr->err_msg_str << ".";
     }
 
-    IConnection::ConnectHandler handler = self->connect_handler_;
-    if (handler != nullptr) {
-        self->connect_handler_ = nullptr;
-        // TODO: review: this is using is_connected as error code.
-        self->notify_connection_change(handler, self->is_connected() ? std::error_code() : connection_error::not_connected);
-    }
+    // TODO: review: this is using is_connected as error code.
+    self->notify_connection_change(callback_data->handler, self->is_connected() ? std::error_code() : connection_error::not_connected);
 }
 
 void CdiTools::CdiConnection::on_payload_received(const CdiAvmRxCbData* cb_data_ptr)
 {
-    auto self = static_cast<CdiConnection*>(cb_data_ptr->core_cb_data.user_cb_param);
+    auto callback_data = static_cast<ReceiveCallbackData*>(cb_data_ptr->core_cb_data.user_cb_param);
+    auto self = std::dynamic_pointer_cast<CdiConnection>(callback_data->connection);
+    assert(self != nullptr);
+
     auto payloads_received = ++self->payloads_received_;
-    IConnection::ReceiveHandler handler = self->receive_handler_;
     auto status_code = cb_data_ptr->core_cb_data.status_code;
 
     if (CdiReturnStatus::kCdiStatusOk != status_code) {
@@ -236,8 +239,8 @@ void CdiTools::CdiConnection::on_payload_received(const CdiAvmRxCbData* cb_data_
             ? cb_data_ptr->core_cb_data.err_msg_str : "No message available";
         self->logger_.error() << "Error receiving a payload: " << err_msg
             << ", code: " << status_code << ", total errors: " << payload_errors << ".";
-        if (handler != nullptr) {
-            self->notify_payload_received(handler, connection_error::receive_error, nullptr);
+        if (self->receive_callback_.handler != nullptr) {
+            self->notify_payload_received(self->receive_callback_.handler, connection_error::receive_error, nullptr);
             return;
         }
     }
@@ -254,8 +257,8 @@ void CdiTools::CdiConnection::on_payload_received(const CdiAvmRxCbData* cb_data_
 #endif
                 << ", size: " << cb_data_ptr->sgl.total_data_size
                 << "...";
-            if (handler != nullptr) {
-                self->notify_payload_received(handler, std::error_code(), payload);
+            if (self->receive_callback_.handler != nullptr) {
+                self->notify_payload_received(self->receive_callback_.handler, std::error_code(), payload);
             }
             else {
                 self->logger_.error() << "A receive handler has not set. Payload will be dropped.";
@@ -266,8 +269,8 @@ void CdiTools::CdiConnection::on_payload_received(const CdiAvmRxCbData* cb_data_
         auto payload_errors = ++self->payload_errors_;
         self->logger_.error() << "Stream identifier [" << cb_data_ptr->avm_extra_data.stream_identifier
             << "] is not valid. Payload will be dropped" << ", total errors: " << payload_errors << ".";
-        if (handler != nullptr) {
-            self->notify_payload_received(handler, connection_error::bad_stream_identifier, nullptr);
+        if (self->receive_callback_.handler != nullptr) {
+            self->notify_payload_received(self->receive_callback_.handler, connection_error::bad_stream_identifier, nullptr);
         }
     }
 
@@ -285,7 +288,10 @@ void CdiTools::CdiConnection::on_payload_received(const CdiAvmRxCbData* cb_data_
 
 void CdiTools::CdiConnection::on_payload_transmitted(const CdiAvmTxCbData* cb_data_ptr)
 {
-    auto self = static_cast<CdiConnection*>(cb_data_ptr->core_cb_data.user_cb_param);
+    auto callback_data = std::unique_ptr<TransmitCallbackData>(static_cast<TransmitCallbackData*>(cb_data_ptr->core_cb_data.user_cb_param));
+    auto self = std::dynamic_pointer_cast<CdiConnection>(callback_data->connection);
+    assert(self != nullptr);
+
     auto status_code = cb_data_ptr->core_cb_data.status_code;
     auto stream_identifier = cb_data_ptr->avm_extra_data.stream_identifier;
 
@@ -307,14 +313,12 @@ void CdiTools::CdiConnection::on_payload_transmitted(const CdiAvmTxCbData* cb_da
             << ", code: " << status_code << ", total errors: " << payload_errors << ".";
     }
 
-    IConnection::TransmitHandler handler = self->transmit_handler_;
-    if (handler != nullptr) {
-        self->notify_payload_transmitted(handler, CdiReturnStatus::kCdiStatusOk == status_code ? std::error_code() : connection_error::transmit_error);
-    }
+    self->notify_payload_transmitted(callback_data->handler,
+        CdiReturnStatus::kCdiStatusOk == status_code ? std::error_code() : connection_error::transmit_error);
 }
 
 void CdiTools::CdiConnection::log_message_callback(const CdiLogMessageCbData* cb_data_ptr)
 {
-    auto self = (CdiConnection*)cb_data_ptr->log_user_cb_param;
+    auto self = static_cast<CdiConnection*>(cb_data_ptr->log_user_cb_param);
     self->logger_.log(Cdi::map_log_level(cb_data_ptr->log_level)) << cb_data_ptr->message_str;
 }
