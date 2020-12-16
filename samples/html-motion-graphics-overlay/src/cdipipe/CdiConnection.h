@@ -10,7 +10,7 @@ namespace CdiTools
     {
     public:
         CdiConnection(const std::string& name, const std::string& host_name, unsigned short port_number,
-            ConnectionMode connection_mode, ConnectionDirection connection_direction, boost::asio::io_context& io);
+            ConnectionMode connection_mode, ConnectionDirection connection_direction, int buffer_size, boost::asio::io_context& io);
         ~CdiConnection() override;
 
         void async_connect(ConnectHandler handler) override;

@@ -72,8 +72,7 @@ void CdiTools::Channel::open_connections(ChannelHandler handler)
                     // clear output buffer for any stream associated with this connection
                     for (auto&& stream : get_connection_streams(connection->get_name())) {
                         for (auto&& output : get_stream_connections(stream->id(), ConnectionDirection::Out)) {
-                            auto& buffer = get_connection_buffer(output->get_name());
-                            buffer.clear();
+                            output->get_buffer().clear();
                         }
                     }
                 }
@@ -143,19 +142,18 @@ void CdiTools::Channel::read_complete(
                 continue;
             }
 
-            auto& connection_name = output_connection->get_name();
-            auto& connection_buffer = get_connection_buffer(connection_name);
-            if (connection_buffer.is_full()) {
+            auto& buffer = output_connection->get_buffer();
+            if (buffer.is_full()) {
                 stream->payload_error();
             }
 
-            connection_buffer.enqueue(payload);
+            buffer.enqueue(payload);
             LOG_DEBUG << "Received payload #" << payload->stream_identifier() << ":" << payloads_received
 #ifdef TRACE_PAYLOADS
                 << " (" << payload->sequence() << ")"
 #endif
                 << ", size: " << payload->get_size()
-                << ", queue length/size: " << connection_buffer.size() << "/" << connection_buffer.capacity()
+                << ", queue length/size: " << buffer.size() << "/" << buffer.capacity()
                 << ".";
         }
     }
@@ -183,14 +181,14 @@ void CdiTools::Channel::async_write(
         LOG_WARNING << "Error transmitting a payload: " << ec.message();
     }
 
-    auto& connection_buffer = get_connection_buffer(connection->get_name());
-    if (connection_buffer.is_empty()) {
+    auto& buffer = connection->get_buffer();
+    if (buffer.is_empty()) {
         std::this_thread::yield();
         post(io_, std::bind(&Channel::async_write, shared_from_this(), connection, ec, handler));
         return;
     }
 
-    auto payload = connection_buffer.front();
+    auto payload = buffer.front();
     auto stream = get_stream(payload->stream_identifier());
     // TODO: payloads transmitted might be wrong if there are multiple outputs
     LOG_TRACE << "Transmitting payload #" << payload->stream_identifier() << ":" << stream->get_payloads_transmitted() + 1
@@ -198,7 +196,7 @@ void CdiTools::Channel::async_write(
         << " (" << payload->sequence() << ")"
 #endif
         << ", size: " << payload->get_size()
-        << ", queue length/size: " << connection_buffer.size() << "/" << connection_buffer.capacity()
+        << ", queue length/size: " << buffer.size() << "/" << buffer.capacity()
         << "...";
 
     connection->async_transmit(
@@ -217,12 +215,12 @@ void CdiTools::Channel::write_complete(
         stream->payload_error();
     }
 
-    auto& connection_buffer = get_connection_buffer(connection->get_name());
-    connection_buffer.pop_front();
+    auto& buffer = connection->get_buffer();
+    buffer.pop_front();
 
     if (!ec) {
 #ifdef TRACE_PAYLOADS
-        auto payload = connection_buffer.front();
+        auto payload = buffer.front();
         auto sequence = payload != nullptr ? payload->sequence() : 0;
         auto size = payload != nullptr ? payload->get_size() : 0;
 #endif
@@ -232,37 +230,11 @@ void CdiTools::Channel::write_complete(
             << " (" << sequence << ")"
             << ", size: " << size
 #endif
-            << ", queue length/size: " << connection_buffer.size() << "/" << connection_buffer.capacity()
+            << ", queue length/size: " << buffer.size() << "/" << buffer.capacity()
             << ".";
     }
 
     async_write(connection, ec, handler);
-}
-
-CdiTools::PayloadBuffer& CdiTools::Channel::get_connection_buffer(const std::string& connection_name)
-{
-    const auto& it = connection_buffers_.find(connection_name);
-    assert(it != connection_buffers_.end());
-
-    auto& connection_state = it->second;
-    auto& buffer = connection_state.first;
-    size_t buffer_size = buffer.size();
-    if (buffer.is_full()) {
-        if (!connection_state.second) {
-            LOG_WARNING << "Receive buffer for connection '" << connection_name << "' is full"
-                << ", capacity: " << buffer.capacity()
-                << ". One or more payloads will be discarded.";
-            connection_state.second = true;
-        }
-    }
-
-    if (connection_state.second) {
-        size_t buffer_capacity = buffer.capacity();
-        const size_t low_water_mark = static_cast<size_t>(buffer_capacity * 0.8);
-        connection_state.second = buffer_size > low_water_mark;
-    }
-
-    return it->second.first;
 }
 
 void CdiTools::Channel::shutdown()
@@ -288,11 +260,9 @@ void CdiTools::Channel::shutdown()
 }
 
 std::shared_ptr<CdiTools::IConnection> CdiTools::Channel::add_input(ConnectionType connection_type, const std::string& name,
-    const std::string& host_name, unsigned short port_number, ConnectionMode connection_mode, size_t buffer_size)
+    const std::string& host_name, unsigned short port_number, ConnectionMode connection_mode, int buffer_size)
 {
-    auto connection = Connection::get_connection(connection_type, name, host_name, port_number, connection_mode, ConnectionDirection::In, io_);
-
-    connection_buffers_.try_emplace(name, buffer_size, false);
+    auto connection = Connection::get_connection(connection_type, name, host_name, port_number, connection_mode, ConnectionDirection::In, buffer_size, io_);
 
     connections_.push_back(connection);
 
@@ -300,11 +270,9 @@ std::shared_ptr<CdiTools::IConnection> CdiTools::Channel::add_input(ConnectionTy
 }
 
 std::shared_ptr<CdiTools::IConnection> CdiTools::Channel::add_output(ConnectionType connection_type, const std::string& name,
-    const std::string& host_name, unsigned short port_number, ConnectionMode connection_mode, size_t buffer_size)
+    const std::string& host_name, unsigned short port_number, ConnectionMode connection_mode, int buffer_size)
 {
-    auto connection = Connection::get_connection(connection_type, name, host_name, port_number, connection_mode, ConnectionDirection::Out, io_);
-
-    connection_buffers_.try_emplace(name, buffer_size, false);
+    auto connection = Connection::get_connection(connection_type, name, host_name, port_number, connection_mode, ConnectionDirection::Out, buffer_size, io_);
 
     connections_.push_back(connection);
 

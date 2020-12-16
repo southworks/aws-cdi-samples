@@ -148,7 +148,7 @@ std::shared_ptr<CdiTools::Channel> CdiTools::Application::configure_channel(Chan
         channel->add_input(input_connection_type, "video_in", "127.0.0.1", Configuration::video_in_port, ConnectionMode::Listener, 0);
         channel->add_output(output_connection_type, ChannelType::CdiStream != Configuration::channel_type ? "video_out" : "avid_out",
             Configuration::remote_ip, Configuration::port_number, ConnectionMode::Client,
-            ChannelType::CdiStream != Configuration::channel_type ? video_buffer_size : static_cast<size_t>(video_buffer_size) + audio_buffer_size);
+            ChannelType::CdiStream != Configuration::channel_type ? video_buffer_size : video_buffer_size + audio_buffer_size);
 
         if (!Configuration::disable_audio) {
             channel->add_input(input_connection_type, "audio_in", "127.0.0.1", Configuration::audio_in_port, ConnectionMode::Listener, 0);

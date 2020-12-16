@@ -10,8 +10,8 @@ using namespace boost::asio::ip;
 using asio_error = boost::system::error_code;
 
 CdiTools::TcpConnection::TcpConnection(const std::string& name, const std::string& host_name, unsigned short port_number,
-    ConnectionMode connection_mode, ConnectionDirection connection_direction, io_context& io)
-    : Connection(name, host_name, port_number, connection_mode, connection_direction, io)
+    ConnectionMode connection_mode, ConnectionDirection connection_direction, int buffer_size, io_context& io)
+    : Connection(name, host_name, port_number, connection_mode, connection_direction, buffer_size, io)
     , socket_{ io }
 {
 }

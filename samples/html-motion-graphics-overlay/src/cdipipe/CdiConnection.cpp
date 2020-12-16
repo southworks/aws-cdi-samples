@@ -12,8 +12,8 @@
 using namespace boost::asio;
 
 CdiTools::CdiConnection::CdiConnection(const std::string& name, const std::string& host_name, unsigned short port_number,
-    ConnectionMode connection_mode, ConnectionDirection connection_direction, io_context& io)
-    : Connection(name, host_name, port_number, connection_mode, connection_direction, io)
+    ConnectionMode connection_mode, ConnectionDirection connection_direction, int buffer_size, io_context& io)
+    : Connection(name, host_name, port_number, connection_mode, connection_direction, buffer_size, io)
     , connection_handle_{ NULL }
     , tx_timeout_{ Configuration::tx_timeout > 0
         ? Configuration::tx_timeout : (1000000 * Configuration::frame_rate_denominator) / Configuration::frame_rate_numerator }

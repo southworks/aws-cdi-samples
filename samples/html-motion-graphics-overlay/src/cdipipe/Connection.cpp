@@ -10,7 +10,7 @@ using namespace boost::asio;
 using namespace boost::asio::ip;
 
 CdiTools::Connection::Connection(const std::string& name, const std::string& host_name, unsigned short port_number,
-    ConnectionMode connection_mode, ConnectionDirection connection_direction, io_context& io)
+    ConnectionMode connection_mode, ConnectionDirection connection_direction, int buffer_size, io_context& io)
     : name_{ name }
     , host_name_{ host_name }
     , port_number_{ port_number }
@@ -22,6 +22,8 @@ CdiTools::Connection::Connection(const std::string& name, const std::string& hos
     , payload_errors_{ 0 }
     , logger_{ name }
     , status_{ ConnectionStatus::Closed }
+    , payload_buffer_{ buffer_size }
+    , suppress_buffer_notifications_{ false }
 {
 }
 
@@ -66,21 +68,42 @@ void CdiTools::Connection::disconnect(std::error_code& ec)
 
 std::shared_ptr<CdiTools::IConnection> CdiTools::Connection::get_connection(ConnectionType connection_type,
     const std::string& name, const std::string& host_name, unsigned short port_number, ConnectionMode connection_mode, 
-    ConnectionDirection connection_direction, io_context& io)
+    ConnectionDirection connection_direction, int buffer_size, io_context& io)
 {
     std::shared_ptr<Connection> connection;
     switch (connection_type) {
     case ConnectionType::Cdi:
-        connection = std::make_shared<CdiConnection>(name, host_name, port_number, connection_mode, connection_direction, io);
+        connection = std::make_shared<CdiConnection>(name, host_name, port_number, connection_mode, connection_direction, buffer_size, io);
         break;
     case ConnectionType::Tcp:
-        connection = std::make_shared<TcpConnection>(name, host_name, port_number, connection_mode, connection_direction, io);
+        connection = std::make_shared<TcpConnection>(name, host_name, port_number, connection_mode, connection_direction, buffer_size, io);
         break;
     default:
         throw InvalidConfigurationException(std::string("Failed to create unsupported connection type " + std::to_string(static_cast<int>(connection_type)) + "."));
     }
 
     return connection;
+}
+
+CdiTools::PayloadBuffer& CdiTools::Connection::get_buffer()
+{
+    size_t buffer_size = payload_buffer_.size();
+    if (payload_buffer_.is_full()) {
+        if (!suppress_buffer_notifications_) {
+            LOG_WARNING << "Receive buffer for connection '" << get_name() << "' is full"
+                << ", capacity: " << payload_buffer_.capacity()
+                << ". One or more payloads will be discarded.";
+            suppress_buffer_notifications_ = true;
+        }
+    }
+
+    if (suppress_buffer_notifications_) {
+        size_t buffer_capacity = payload_buffer_.capacity();
+        const size_t low_water_mark = static_cast<size_t>(buffer_capacity * 0.8);
+        suppress_buffer_notifications_ = buffer_size > low_water_mark;
+    }
+
+    return payload_buffer_;
 }
 
 void CdiTools::Connection::notify_connection_change(ConnectHandler handler, const std::error_code& ec)

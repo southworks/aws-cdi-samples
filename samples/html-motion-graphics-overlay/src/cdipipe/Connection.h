@@ -13,7 +13,7 @@ namespace CdiTools
     {
     public:
         Connection(const std::string& name, const std::string& host_name, unsigned short port_number,
-            ConnectionMode connection_mode, ConnectionDirection connection_direction, boost::asio::io_context& io);
+            ConnectionMode connection_mode, ConnectionDirection connection_direction, int buffer_size, boost::asio::io_context& io);
         ~Connection() override;
 
         inline bool is_connected() const override { return ConnectionStatus::Open == status_; }
@@ -26,9 +26,11 @@ namespace CdiTools
         inline int get_payloads_transmitted() const override { return payloads_transmitted_; }
         void add_stream(std::shared_ptr<Stream> stream) override;
         std::shared_ptr<Stream> get_stream(uint16_t stream_identifier) override;
+        PayloadBuffer& get_buffer() override;
 
         static std::shared_ptr<IConnection> get_connection(ConnectionType connection_type, const std::string& name, 
-            const std::string& host_name, unsigned short port_number, ConnectionMode connection_mode, ConnectionDirection connection_direction, boost::asio::io_context& io_context);
+            const std::string& host_name, unsigned short port_number, ConnectionMode connection_mode,
+            ConnectionDirection connection_direction, int buffer_size, boost::asio::io_context& io_context);
 
     protected:
         inline void set_status(ConnectionStatus status) { status_ = status; }
@@ -44,9 +46,11 @@ namespace CdiTools
         std::vector<std::shared_ptr<Stream>> streams_;
         boost::asio::io_context& io_;
         Logger logger_;
-        std::atomic<int> payloads_received_;
-        std::atomic<int> payloads_transmitted_;
-        std::atomic<int> payload_errors_;
+        std::atomic_int payloads_received_;
+        std::atomic_int payloads_transmitted_;
+        std::atomic_int payload_errors_;
+        PayloadBuffer payload_buffer_;
+        bool suppress_buffer_notifications_;
 
     private:
         ConnectionStatus status_;

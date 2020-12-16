@@ -3,6 +3,7 @@
 #include <functional>
 
 #include "Payload.h"
+#include "PayloadBuffer.h"
 #include "ConnectionType.h"
 #include "ConnectionStatus.h"
 #include "ConnectionDirection.h"
@@ -35,5 +36,6 @@ namespace CdiTools
         virtual int get_payloads_transmitted() const = 0;
         virtual void add_stream(std::shared_ptr<Stream> stream) = 0;
         virtual std::shared_ptr<Stream> get_stream(uint16_t stream_identifier) = 0;
+        virtual PayloadBuffer& get_buffer() = 0;
     };
 }
