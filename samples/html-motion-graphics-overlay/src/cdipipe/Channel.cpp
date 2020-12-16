@@ -37,7 +37,7 @@ void CdiTools::Channel::start(ChannelHandler handler, int thread_pool_size)
     LOG_INFO << "Waiting for channel connections to be ready...";
     open_connections(handler);
 
-    if (thread_pool_size > 0) {
+    if (thread_pool_size > 1) {
         boost::thread_group pool;
         for (int i = 0; i < thread_pool_size; i++) {
             pool.create_thread([&]() { io_.run(); });
