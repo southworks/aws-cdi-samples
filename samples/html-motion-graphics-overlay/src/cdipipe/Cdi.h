@@ -3,8 +3,14 @@
 #include <cdi_core_api.h>
 #include <cdi_avm_api.h>
 #include <cdi_log_api.h>
-#include <cdi_baseline_profile_api.h> 
+#include <cdi_baseline_profile_api.h>
 #include <cdi_pool_api.h>
+#if SUPPORT_BASELINE_PROFILE_01
+#include <cdi_baseline_profile_01_00_api.h>
+#endif
+#if SUPPORT_BASELINE_PROFILE_02
+#include <cdi_baseline_profile_02_00_api.h>
+#endif
 
 #include "Logger.h"
 #include "PayloadType.h"
