@@ -12,8 +12,7 @@ SET FFMPEG_CMD=!FFMPEG_PATH!ffmpeg
 SET FFPLAY_CMD=!FFMPEG_PATH!ffplay
 SET FFPROBE_CMD=!FFMPEG_PATH!ffprobe
 SET HTMLSRC_CMD=!HTMLSRC_PATH!htmlsrc
-SET CDIPIPE_CMD=!TOOLS_PATH!cdipipe -num_threads 1 -tx_timeout 120000
-::-large_pool_items 40 -small_pool_items 60
+SET CDIPIPE_CMD=!TOOLS_PATH!cdipipe -tx_timeout 80000
 
 SET "FFMPEG_GLOBAL_OPTIONS= -hide_banner -loglevel info"
 SET "FFPLAY_GLOBAL_OPTIONS= -hide_banner -loglevel info"

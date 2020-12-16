@@ -10,7 +10,7 @@ std::string Configuration::log_file;
 // channel settings
 ChannelType Configuration::channel_type{ ChannelType::CdiStream };
 bool Configuration::inline_handlers{ false };
-int Configuration::num_threads{ 4 };
+int Configuration::num_threads{ 1 };
 
 // CDI settings
 NetworkAdapterType Configuration::adapter_type{ NetworkAdapterType::SocketLibFabric };
@@ -22,8 +22,8 @@ int Configuration::tx_timeout{ 0 };
 // buffer pool configuration
 const uint32_t Configuration::large_buffer_pool_item_size = 1920 * 1080 * 3;
 const uint32_t Configuration::small_buffer_pool_item_size = 2 * 2304;
-unsigned int Configuration::large_buffer_pool_max_items = 25;
-unsigned int Configuration::small_buffer_pool_max_items = 40;
+unsigned int Configuration::large_buffer_pool_max_items = 40;
+unsigned int Configuration::small_buffer_pool_max_items = 60;
 
 // input/output port configurations
 unsigned short Configuration::port_number = 2000;
