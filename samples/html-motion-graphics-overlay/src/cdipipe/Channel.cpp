@@ -288,11 +288,13 @@ void CdiTools::Channel::shutdown()
         else {
             LOG_INFO << "Connection '" << connection->get_name() << "' closed successfully.";
         }
-
-        connection->get_buffer().clear();
     }
 
     io_.stop();
+
+    for (auto&& connection : connections_) {
+        connection->get_buffer().clear();
+    }
 }
 
 std::shared_ptr<CdiTools::IConnection> CdiTools::Channel::add_input(ConnectionType connection_type, const std::string& name,
