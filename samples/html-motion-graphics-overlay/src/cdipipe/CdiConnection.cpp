@@ -219,6 +219,7 @@ void CdiTools::CdiConnection::on_connection_change(const CdiCoreConnectionCbData
 
     // TODO: review: this is using is_connected as error code.
     self->notify_connection_change(callback_data->handler, self->is_connected() ? std::error_code() : connection_error::not_connected);
+    callback_data->clear_handler();
 }
 
 void CdiTools::CdiConnection::on_payload_received(const CdiAvmRxCbData* cb_data_ptr)

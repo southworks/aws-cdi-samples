@@ -24,6 +24,7 @@ namespace CdiTools
         template <typename T>
         struct CdiCallbackData
         {
+            void clear_handler() { handler = nullptr; }
             std::shared_ptr<Connection> connection;
             T handler;
         };
