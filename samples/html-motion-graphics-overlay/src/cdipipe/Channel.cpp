@@ -291,6 +291,8 @@ void CdiTools::Channel::shutdown()
 
         connection->get_buffer().clear();
     }
+
+    io_.stop();
 }
 
 std::shared_ptr<CdiTools::IConnection> CdiTools::Channel::add_input(ConnectionType connection_type, const std::string& name,
