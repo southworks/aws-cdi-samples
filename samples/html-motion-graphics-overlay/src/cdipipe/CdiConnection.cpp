@@ -296,7 +296,6 @@ void CdiTools::CdiConnection::on_payload_transmitted(const CdiAvmTxCbData* cb_da
 
     auto payloads_transmitted = ++self->payloads_transmitted_;
 
-    auto stream = self->get_stream(cb_data_ptr->avm_extra_data.stream_identifier);
     if (CdiReturnStatus::kCdiStatusOk == status_code) {
         self->logger_.trace() << "CDI transmitted payload #" << stream_identifier << ":" << payloads_transmitted
 #ifdef TRACE_PAYLOADS
