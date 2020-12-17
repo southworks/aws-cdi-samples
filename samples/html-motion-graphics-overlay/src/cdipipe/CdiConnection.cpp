@@ -228,9 +228,20 @@ void CdiTools::CdiConnection::on_payload_received(const CdiAvmRxCbData* cb_data_
     auto callback_data = static_cast<ReceiveCallbackData*>(cb_data_ptr->core_cb_data.user_cb_param);
     auto self = std::dynamic_pointer_cast<CdiConnection>(callback_data->connection);
     assert(self != nullptr);
+    assert(self->receive_callback_.handler != nullptr);
 
     auto payloads_received = ++self->payloads_received_;
     auto status_code = cb_data_ptr->core_cb_data.status_code;
+
+    // create a payload from the SG list received
+    auto payload = PayloadData::create(
+        cb_data_ptr->sgl,
+        cb_data_ptr->avm_extra_data.stream_identifier);
+
+    if (self->receive_callback_.handler == nullptr) {
+        self->logger_.error() << "A receive handler has not set. Payload will be dropped.";
+        return;
+    }
 
     if (CdiReturnStatus::kCdiStatusOk != status_code) {
         auto payload_errors = ++self->payload_errors_;
@@ -239,42 +250,31 @@ void CdiTools::CdiConnection::on_payload_received(const CdiAvmRxCbData* cb_data_
             ? cb_data_ptr->core_cb_data.err_msg_str : "No message available";
         self->logger_.error() << "Error receiving a payload: " << err_msg
             << ", code: " << status_code << ", total errors: " << payload_errors << ".";
-        if (self->receive_callback_.handler != nullptr) {
-            self->notify_payload_received(self->receive_callback_.handler, connection_error::receive_error, nullptr);
-            return;
-        }
+        self->notify_payload_received(self->receive_callback_.handler, connection_error::receive_error, nullptr);
     }
 
+    // ensure stream is valid
     auto stream = self->get_stream(cb_data_ptr->avm_extra_data.stream_identifier);
-    if (stream != nullptr) {
-        auto payload = PayloadData::create(
-            cb_data_ptr->sgl,
-            cb_data_ptr->avm_extra_data.stream_identifier);
-        if (payload != nullptr) {
-            self->logger_.trace() << "CDI received payload #" << payload->stream_identifier() << ":" << payloads_received
-#ifdef TRACE_PAYLOADS
-                << " (" << payload->sequence() << ")"
-#endif
-                << ", size: " << cb_data_ptr->sgl.total_data_size
-                << "...";
-            if (self->receive_callback_.handler != nullptr) {
-                self->notify_payload_received(self->receive_callback_.handler, std::error_code(), payload);
-            }
-            else {
-                self->logger_.error() << "A receive handler has not set. Payload will be dropped.";
-            }
-        }
-    }
-    else {
+    if (stream == nullptr) {
         auto payload_errors = ++self->payload_errors_;
-        self->logger_.error() << "Stream identifier [" << cb_data_ptr->avm_extra_data.stream_identifier
-            << "] is not valid. Payload will be dropped" << ", total errors: " << payload_errors << ".";
-        if (self->receive_callback_.handler != nullptr) {
-            self->notify_payload_received(self->receive_callback_.handler, connection_error::bad_stream_identifier, nullptr);
-        }
+        self->logger_.error() << "Stream identifier #" << cb_data_ptr->avm_extra_data.stream_identifier
+            << " is not valid. Payload will be dropped" << ", total errors: " << payload_errors << ".";
+        self->notify_payload_received(self->receive_callback_.handler, connection_error::bad_stream_identifier, payload);
+        return;
     }
 
-    if (nullptr != cb_data_ptr->config_ptr) {
+    if (payload != nullptr) {
+        self->logger_.trace() << "CDI received payload #" << payload->stream_identifier() << ":" << payloads_received
+#ifdef TRACE_PAYLOADS
+            << " (" << payload->sequence() << ")"
+#endif
+            << ", size: " << cb_data_ptr->sgl.total_data_size
+            << "...";
+        self->notify_payload_received(self->receive_callback_.handler, std::error_code(), payload);
+    }
+
+    // log stream configuration, if specified
+    if (cb_data_ptr->config_ptr != nullptr) {
         CdiAvmBaselineConfig config;
         CdiReturnStatus rs = CdiAvmParseBaselineConfiguration(cb_data_ptr->config_ptr, &config);
         if (CdiReturnStatus::kCdiStatusOk == rs) {
