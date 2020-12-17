@@ -84,13 +84,13 @@ void CdiTools::TcpConnection::async_accept(ConnectHandler handler)
 
 void CdiTools::TcpConnection::disconnect(std::error_code& ec)
 {
+    asio_error err;
     if (socket_.is_open()) {
         auto endpoint = socket_.remote_endpoint();
-        socket_.shutdown(socket_base::shutdown_both);
+        socket_.shutdown(socket_base::shutdown_both, err);
         LOG_DEBUG << "TCP connection to " << endpoint << " was closed.";
     }
 
-    asio_error err;
     socket_.close(err);
     if (err) {
         ec = err;
