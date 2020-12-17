@@ -1,5 +1,3 @@
-#include <iomanip>
-
 #include "Application.h"
 #include "CdiConnection.h"
 #include "Errors.h"
