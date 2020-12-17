@@ -108,30 +108,36 @@ CdiTools::PayloadBuffer& CdiTools::Connection::get_buffer()
 
 void CdiTools::Connection::notify_connection_change(ConnectHandler handler, const std::error_code& ec)
 {
-    if (Configuration::inline_handlers) {
-        handler(ec);
-    }
-    else {
-        post(io_, std::bind(handler, ec));
+    if (handler != nullptr) {
+        if (Configuration::inline_handlers) {
+            handler(ec);
+        }
+        else {
+            post(io_, std::bind(handler, ec));
+        }
     }
 }
 
 void CdiTools::Connection::notify_payload_received(ReceiveHandler handler, const std::error_code& ec, Payload payload)
 {
-    if (Configuration::inline_handlers) {
-        handler(ec, payload);
-    }
-    else {
-        post(io_, std::bind(handler, ec, payload));
+    if (handler != nullptr) {
+        if (Configuration::inline_handlers) {
+            handler(ec, payload);
+        }
+        else {
+            post(io_, std::bind(handler, ec, payload));
+        }
     }
 }
 
 void CdiTools::Connection::notify_payload_transmitted(TransmitHandler handler, const std::error_code& ec)
 {
-    if (Configuration::inline_handlers) {
-        handler(ec);
-    }
-    else {
-        post(io_, std::bind(handler, ec));
+    if (handler != nullptr) {
+        if (Configuration::inline_handlers) {
+            handler(ec);
+        }
+        else {
+            post(io_, std::bind(handler, ec));
+        }
     }
 }
