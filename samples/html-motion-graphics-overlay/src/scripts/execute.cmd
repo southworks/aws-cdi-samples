@@ -108,7 +108,7 @@ IF NOT "%~1"=="" (
         CALL :ParseValue VIDEO_AVG_FRAME_RATE !PARAMETER_NAME! !PARAMETER_VALUE!
         IF "!ERRORLEVEL!"=="0" (SHIFT & GOTO next) ELSE (GOTO exit)
     )
-    
+
     IF "!PARAMETER_NAME!"=="audio_stream" (
         CALL :ParseValue AUDIO_STREAM_INDEX !PARAMETER_NAME! !PARAMETER_VALUE!
         IF "!ERRORLEVEL!"=="0" (SHIFT & GOTO next) ELSE (GOTO exit)
@@ -495,8 +495,8 @@ SET "TIMECODE=drawtext=font=Lucida Sans:fontsize=36:start_number=1:timecode='00\
 IF /I NOT "!ROLE!"=="receiver" (
     SET "INPUT_STREAM= -re -i !INPUT_SOURCE!"
     SET "BIT_RATE= -b:v 2M -maxrate 1M -bufsize 1M"
-    SET "TX_VIDEO_STREAM= -map 0:v:!VIDEO_STREAM_INDEX! -vcodec rawvideo -pix_fmt rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -r !VIDEO_AVG_FRAME_RATE!!BIT_RATE! -f rawvideo tcp://127.0.0.1:!VIDEO_IN_PORT!"
-    SET "TX_AUDIO_STREAM= -map 0:a:!AUDIO_STREAM_INDEX! -acodec pcm_s16le -f s16le tcp://127.0.0.1:!AUDIO_IN_PORT!"
+    SET "TX_VIDEO_STREAM= -map 0:v:!VIDEO_STREAM_INDEX! -c:v rawvideo -pix_fmt rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -r !VIDEO_AVG_FRAME_RATE!!BIT_RATE! -f rawvideo tcp://127.0.0.1:!VIDEO_IN_PORT!"
+    SET "TX_AUDIO_STREAM= -map 0:a:!AUDIO_STREAM_INDEX! -c:a copy -f !AUDIO_CODEC_NAME! tcp://127.0.0.1:!AUDIO_IN_PORT!"
     IF DEFINED TX_TIMESTAMP (SET "TRANSMIT_PTS=!FILTER_DELIMITER!!PTS_OPTIONS!:x=20:y=20:fontcolor=white" & SET "FILTER_DELIMITER=, ")
     IF DEFINED FILTER_DELIMITER (SET "TX_FILTER= -filter_complex "!OVERLAY_FILTER!!TRANSMIT_PTS!"")
     SET "TX_PROCESSOR=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS!!INPUT_STREAM!!OVERLAY_STREAM!!TX_FILTER!!TX_VIDEO_STREAM!!TX_AUDIO_STREAM!"
@@ -514,13 +514,13 @@ IF /I NOT "!ROLE!"=="transmitter" (
 
     SET "ENCODER_RAW= -an -c:v rawvideo -pix_fmt rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -r !VIDEO_AVG_FRAME_RATE!!BIT_RATE!!OUTPUT_FORMAT!"
     IF /I "!RECEIVER_MODE!"=="stream" (
-        SET "ENCODER_OUTPUT= -ac 2 -c:v libx264 -x264opts sliced-threads -pix_fmt yuv420p -crf 21 -preset veryfast -tune zerolatency -vsync cfr -g 10 -b:a 128k -f hls -hls_time 10 -hls_playlist_type event"
+        SET "ENCODER_OUTPUT= -c:a copy -c:v libx264 -x264opts sliced-threads -pix_fmt yuv420p -crf 21 -preset veryfast -tune zerolatency -vsync cfr -g 10 -b:a 128k -f hls -hls_time 10 -hls_playlist_type event"
     ) ELSE (
-        SET "ENCODER_OUTPUT= -ac 2 -c:v libx264 -x264opts sliced-threads -pix_fmt yuv420p -preset ultrafast -tune zerolatency -vsync cfr -g 10!ENCODER_FORMAT!"
+        SET "ENCODER_OUTPUT= -c:a copy -c:v libx264 -x264opts sliced-threads -pix_fmt yuv420p -preset ultrafast -tune zerolatency -vsync cfr -g 10!ENCODER_FORMAT!"
     )
 
-    SET "RX_VIDEO_STREAM= -thread_queue_size !VIDEO_QUEUE_SIZE! -pixel_format rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -framerate !VIDEO_AVG_FRAME_RATE! -f rawvideo -i tcp://127.0.0.1:!VIDEO_OUT_PORT!"
-    SET "RX_AUDIO_STREAM= -itsoffset !TIME_OFFSET! -thread_queue_size !AUDIO_QUEUE_SIZE! -f s16le -sample_rate 44100 -channels 2 -i tcp://127.0.0.1:!AUDIO_OUT_PORT!"
+    SET "RX_VIDEO_STREAM= -itsoffset !TIME_OFFSET! -thread_queue_size !VIDEO_QUEUE_SIZE! -pixel_format rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -framerate !VIDEO_AVG_FRAME_RATE! -f rawvideo -i tcp://127.0.0.1:!VIDEO_OUT_PORT!"
+    SET "RX_AUDIO_STREAM= -thread_queue_size !AUDIO_QUEUE_SIZE! -f !AUDIO_CODEC_NAME! -i tcp://127.0.0.1:!AUDIO_OUT_PORT!"
     IF DEFINED RX_TIMESTAMP (SET "RECEIVE_PTS=!PTS_OPTIONS!:x=(w-tw-20):y=20:fontcolor=white" & SET "FILTER_DELIMITER=, ")
     IF DEFINED FILTER_DELIMITER (SET "RX_FILTER= -vf "!RECEIVE_PTS!"")
     SET "ENCODER=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS!!RX_AUDIO_STREAM!!RX_VIDEO_STREAM!!RX_FILTER!!ENCODER_OUTPUT!"
