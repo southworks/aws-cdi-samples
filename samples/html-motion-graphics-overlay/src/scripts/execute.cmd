@@ -386,7 +386,7 @@ IF DEFINED INPUT_SOURCE (
     FOR /F "tokens=1,2,3 delims=^=" %%G IN ('!ANALYZE_VIDEO!') DO (SET "VIDEO_%%G=%%H")
 
     SET "AUDIO_METADATA=stream=codec_name,sample_rate,channels,channel_layout,bits_per_sample,duration,duration_ts,bit_rate,max_bit_rate,bits_per_raw_sample : format=duration"
-    SET "ANALYZE_AUDIO=!FFPROBE_CMD! -hide_banner -v error -select_streams a:!AUDIO_STREAM_ID! -show_entries "!AUDIO_METADATA!" -of default=noprint_wrappers=1 !INPUT_SOURCE!"
+    SET "ANALYZE_AUDIO=!FFPROBE_CMD! -hide_banner -v error -select_streams a:!AUDIO_STREAM_INDEX! -show_entries "!AUDIO_METADATA!" -of default=noprint_wrappers=1 !INPUT_SOURCE!"
     FOR /F "tokens=1,2,3 delims=^=" %%G IN ('!ANALYZE_AUDIO!') DO (SET "AUDIO_%%G=%%H")    
 )
 
