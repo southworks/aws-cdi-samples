@@ -34,6 +34,8 @@ SET "PORT_NUMBER=2000"
 SET "VIDEO_QUEUE_SIZE=1500"
 SET "AUDIO_QUEUE_SIZE=2000"
 SET "HTMLSRC_QUEUE_SIZE=2000"
+SET "VIDEO_STREAM_INDEX=0"
+SET "AUDIO_STREAM_INDEX=0"
 SET "TIME_OFFSET=0.9"
 SET "CHANNEL_TYPE=cdistream"
 SET "ADAPTER_TYPE=socketlibfabric"
@@ -107,6 +109,11 @@ IF NOT "%~1"=="" (
         IF "!ERRORLEVEL!"=="0" (SHIFT & GOTO next) ELSE (GOTO exit)
     )
     
+    IF "!PARAMETER_NAME!"=="audio_stream" (
+        CALL :ParseValue AUDIO_STREAM_INDEX !PARAMETER_NAME! !PARAMETER_VALUE!
+        IF "!ERRORLEVEL!"=="0" (SHIFT & GOTO next) ELSE (GOTO exit)
+    )
+
     IF "!PARAMETER_NAME!"=="adapter" (
         CALL :ParseOptions ADAPTER_TYPE !PARAMETER_NAME! !ADAPTER_OPTIONS! !PARAMETER_VALUE!
         IF "!ERRORLEVEL!"=="0" (SHIFT & GOTO next) ELSE (GOTO exit)
@@ -488,8 +495,8 @@ SET "TIMECODE=drawtext=font=Lucida Sans:fontsize=36:start_number=1:timecode='00\
 IF /I NOT "!ROLE!"=="receiver" (
     SET "INPUT_STREAM= -re -i !INPUT_SOURCE!"
     SET "BIT_RATE= -b:v 2M -maxrate 1M -bufsize 1M"
-    SET "TX_VIDEO_STREAM= -vcodec rawvideo -pix_fmt rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -r !VIDEO_AVG_FRAME_RATE!!BIT_RATE! -f rawvideo tcp://127.0.0.1:!VIDEO_IN_PORT!"
-    SET "TX_AUDIO_STREAM= -acodec pcm_s16le -f s16le tcp://127.0.0.1:!AUDIO_IN_PORT!"
+    SET "TX_VIDEO_STREAM= -map 0:v:!VIDEO_STREAM_INDEX! -vcodec rawvideo -pix_fmt rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -r !VIDEO_AVG_FRAME_RATE!!BIT_RATE! -f rawvideo tcp://127.0.0.1:!VIDEO_IN_PORT!"
+    SET "TX_AUDIO_STREAM= -map 0:a:!AUDIO_STREAM_INDEX! -acodec pcm_s16le -f s16le tcp://127.0.0.1:!AUDIO_IN_PORT!"
     IF DEFINED TX_TIMESTAMP (SET "TRANSMIT_PTS=!FILTER_DELIMITER!!PTS_OPTIONS!:x=20:y=20:fontcolor=white" & SET "FILTER_DELIMITER=, ")
     IF DEFINED FILTER_DELIMITER (SET "TX_FILTER= -filter_complex "!OVERLAY_FILTER!!TRANSMIT_PTS!"")
     SET "TX_PROCESSOR=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS!!INPUT_STREAM!!OVERLAY_STREAM!!TX_FILTER!!TX_VIDEO_STREAM!!TX_AUDIO_STREAM!"
@@ -605,6 +612,7 @@ ECHO     -video_in_port ^<port_number^>          : video input port number (opti
 ECHO     -audio_in_port ^<port_number^>          : audio input port number (optional, default: !AUDIO_IN_PORT!)
 ECHO     -video_out_port ^<port_number^>         : video input port number (optional, default: !VIDEO_OUT_PORT!)
 ECHO     -audio_out_port ^<port_number^>         : audio input port number (optional, default: !AUDIO_OUT_PORT!)
+ECHO     -audio_stream_index ^<index^>           : input audio stream index (optional, default: !AUDIO_STREAM_INDEX!)
 ECHO     -time_offset ^<seconds^>                : audio/video stream time offset (optional, default: !TIME_OFFSET!)
 ECHO     -rx_timestamp                         : display receiver timestamp overlay (optional, default: !DEFAULT_RX_TIMESTAMP!)
 ECHO     -tx_timestamp                         : display transmitter timestamp overlay (optional, default: !DEFAULT_TX_TIMESTAMP!)
