@@ -40,9 +40,9 @@ SET "ADAPTER_TYPE=socketlibfabric"
 SET "ROLE=both"
 SET "RECEIVER_MODE=play"
 SET "OUTPUT_FORMAT=mp4"
-SET "DEFAULT_SOURCE_WIDTH=none"
-SET "DEFAULT_SOURCE_HEIGHT=none"
-SET "DEFAULT_SOURCE_AVG_FRAME_RATE=none"
+SET "DEFAULT_VIDEO_WIDTH=none"
+SET "DEFAULT_VIDEO_HEIGHT=none"
+SET "DEFAULT_VIDEO_AVG_FRAME_RATE=none"
 SET "DEFAULT_OVERLAY_WINDOW_SIZE=none"
 SET "DEFAULT_OVERLAY_VIEWPORT_ORIGIN=0 0"
 SET "DEFAULT_OVERLAY_VIEWPORT_SIZE=window size"
@@ -93,17 +93,17 @@ IF NOT "%~1"=="" (
     )
 
     IF "!PARAMETER_NAME!"=="width" (
-        CALL :ParseValue SOURCE_WIDTH !PARAMETER_NAME! !PARAMETER_VALUE!
+        CALL :ParseValue VIDEO_WIDTH !PARAMETER_NAME! !PARAMETER_VALUE!
         IF "!ERRORLEVEL!"=="0" (SHIFT & GOTO next) ELSE (GOTO exit)
     )
 
     IF "!PARAMETER_NAME!"=="height" (
-        CALL :ParseValue SOURCE_HEIGHT !PARAMETER_NAME! !PARAMETER_VALUE!
+        CALL :ParseValue VIDEO_HEIGHT !PARAMETER_NAME! !PARAMETER_VALUE!
         IF "!ERRORLEVEL!"=="0" (SHIFT & GOTO next) ELSE (GOTO exit)
     )
 
     IF "!PARAMETER_NAME!"=="framerate" (
-        CALL :ParseValue SOURCE_AVG_FRAME_RATE !PARAMETER_NAME! !PARAMETER_VALUE!
+        CALL :ParseValue VIDEO_AVG_FRAME_RATE !PARAMETER_NAME! !PARAMETER_VALUE!
         IF "!ERRORLEVEL!"=="0" (SHIFT & GOTO next) ELSE (GOTO exit)
     )
     
@@ -261,13 +261,13 @@ IF DEFINED REMOTE_IP (SET USE_NETWORK=1)
 IF DEFINED USE_NETWORK (FOR /f "tokens=2 delims=\[\]" %%A IN ('ping -n 1 -4 "%COMPUTERNAME%"') DO SET IP_ADDRESS=%%A) ELSE (SET IP_ADDRESS=127.0.0.1)
 
 IF /I "!ROLE!"=="receiver" (
-    CALL :ParseValue SOURCE_WIDTH width !SOURCE_WIDTH! !SOURCE_WIDTH!
+    CALL :ParseValue VIDEO_WIDTH width !VIDEO_WIDTH! !VIDEO_WIDTH!
     IF "!ERRORLEVEL!"=="1" (GOTO exit)
 
-    CALL :ParseValue SOURCE_HEIGHT height !SOURCE_HEIGHT! !SOURCE_HEIGHT!
+    CALL :ParseValue VIDEO_HEIGHT height !VIDEO_HEIGHT! !VIDEO_HEIGHT!
     IF "!ERRORLEVEL!"=="1" (GOTO exit)
 
-    CALL :ParseValue SOURCE_AVG_FRAME_RATE framerate !SOURCE_AVG_FRAME_RATE! !SOURCE_AVG_FRAME_RATE!
+    CALL :ParseValue VIDEO_AVG_FRAME_RATE framerate !VIDEO_AVG_FRAME_RATE! !VIDEO_AVG_FRAME_RATE!
     IF "!ERRORLEVEL!"=="1" (GOTO exit)
 ) ELSE (
     CALL :ParseValue INPUT_SOURCE source !INPUT_SOURCE! !INPUT_SOURCE!
@@ -325,9 +325,9 @@ IF /I NOT "!ROLE!"=="transmitter" (
         )
     )
 ) ELSE (
-    IF DEFINED SOURCE_WIDTH (GOTO ignore_dimensions)
-    IF DEFINED SOURCE_HEIGHT (GOTO ignore_dimensions)
-    IF NOT DEFINED SOURCE_AVG_FRAME_RATE (GOTO check_overlay)
+    IF DEFINED VIDEO_WIDTH (GOTO ignore_dimensions)
+    IF DEFINED VIDEO_HEIGHT (GOTO ignore_dimensions)
+    IF NOT DEFINED VIDEO_AVG_FRAME_RATE (GOTO check_overlay)
 :ignore_dimensions
     ECHO ERROR: Parameters 'width', 'height', and 'framerate' are ignored in transmitter mode. They are obtained from the input source.
 )
@@ -371,10 +371,14 @@ IF DEFINED OVERLAY_SOURCE (
 :start
 :: analize input source
 IF DEFINED INPUT_SOURCE (
-    SET METADATA="stream=codec_name,bit_rate,width,height,display_aspect_ratio,pix_fmt,r_frame_rate,avg_frame_rate,duration_ts,bit_rate,bits_per_raw_sample,nb_frames : format=duration"
     IF DEFINED QUIET_MODE SET "FFPROBE_CMD=!FFPROBE_CMD! 2^>NUL"
-    SET "ANALIZER=!FFPROBE_CMD! -hide_banner -v error -select_streams v:0 -show_entries !METADATA! -of default=noprint_wrappers=1 !INPUT_SOURCE!"
-    FOR /F "tokens=1,2,3 delims=^=" %%G IN ('!ANALIZER!') DO (SET "SOURCE_%%G=%%H")
+    SET "VIDEO_METADATA=stream=codec_name,width,height,display_aspect_ratio,pix_fmt,r_frame_rate,avg_frame_rate,duration,duration_ts,bit_rate,bits_per_raw_sample,nb_frames : format=duration"
+    SET "ANALYZE_VIDEO=!FFPROBE_CMD! -hide_banner -v error -select_streams v:0 -show_entries "!VIDEO_METADATA!" -of default=noprint_wrappers=1 !INPUT_SOURCE!"
+    FOR /F "tokens=1,2,3 delims=^=" %%G IN ('!ANALYZE_VIDEO!') DO (SET "VIDEO_%%G=%%H")
+
+    SET "AUDIO_METADATA=stream=codec_name,sample_rate,channels,channel_layout,bits_per_sample,duration,duration_ts,bit_rate,max_bit_rate,bits_per_raw_sample : format=duration"
+    SET "ANALYZE_AUDIO=!FFPROBE_CMD! -hide_banner -v error -select_streams a:!AUDIO_STREAM_ID! -show_entries "!AUDIO_METADATA!" -of default=noprint_wrappers=1 !INPUT_SOURCE!"
+    FOR /F "tokens=1,2,3 delims=^=" %%G IN ('!ANALYZE_AUDIO!') DO (SET "AUDIO_%%G=%%H")
 )
 
 :show_options
@@ -397,9 +401,9 @@ ECHO   Source                 : !INPUT_SOURCE!
 ) ELSE (
 ECHO   Source                 : channel
 )
-ECHO     Width                : !SOURCE_WIDTH!
-ECHO     Height               : !SOURCE_HEIGHT!
-ECHO     Frame Rate           : !SOURCE_AVG_FRAME_RATE!
+ECHO     Width                : !VIDEO_WIDTH!
+ECHO     Height               : !VIDEO_HEIGHT!
+ECHO     Frame Rate           : !VIDEO_AVG_FRAME_RATE!
 ECHO.
 IF DEFINED OVERLAY_SOURCE (
 ECHO   Overlay source         : !OVERLAY_SOURCE!
@@ -464,25 +468,25 @@ IF DEFINED OVERLAY_SOURCE (
     SET /A OVERLAY_FRAME_SIZE=!OVERLAY_VIEWPORT_WIDTH! * !OVERLAY_VIEWPORT_HEIGHT! * 4
     SET "OVERLAY_STREAM= -thread_queue_size !HTMLSRC_QUEUE_SIZE! -f rawvideo -pixel_format bgra -video_size !OVERLAY_VIEWPORT_WIDTH!x!OVERLAY_VIEWPORT_HEIGHT! -framerate !OVERLAY_FRAME_RATE! -i -"
     IF /I "!OVERLAY_POSITION!" == "top-left" (
-        SET "OVERLAY_FILTER=!OVERLAY_FILTER!!FILTER_DELIMITER![0]setpts=PTS-STARTPTS[mn];[1]setpts=PTS-STARTPTS,fps=!SOURCE_AVG_FRAME_RATE![ov];[mn][ov]overlay=10:10:eof_action=endall" & SET "FILTER_DELIMITER=, "
+        SET "OVERLAY_FILTER=!OVERLAY_FILTER!!FILTER_DELIMITER![0]setpts=PTS-STARTPTS[mn];[1]setpts=PTS-STARTPTS,fps=!VIDEO_AVG_FRAME_RATE![ov];[mn][ov]overlay=10:10:eof_action=endall" & SET "FILTER_DELIMITER=, "
     ) ELSE IF /I "!OVERLAY_POSITION!"=="bottom-left" (
-        SET "OVERLAY_FILTER=!OVERLAY_FILTER!!FILTER_DELIMITER![0]setpts=PTS-STARTPTS[mn];[1]setpts=PTS-STARTPTS,fps=!SOURCE_AVG_FRAME_RATE![ov];[mn][ov]overlay=10:main_h-overlay_h:eof_action=endall" & SET "FILTER_DELIMITER=, "
+        SET "OVERLAY_FILTER=!OVERLAY_FILTER!!FILTER_DELIMITER![0]setpts=PTS-STARTPTS[mn];[1]setpts=PTS-STARTPTS,fps=!VIDEO_AVG_FRAME_RATE![ov];[mn][ov]overlay=10:main_h-overlay_h:eof_action=endall" & SET "FILTER_DELIMITER=, "
     ) ELSE IF /I "!OVERLAY_POSITION!"=="top-right" (
-        SET "OVERLAY_FILTER=!OVERLAY_FILTER!!FILTER_DELIMITER![0]setpts=PTS-STARTPTS[mn];[1]setpts=PTS-STARTPTS,fps=!SOURCE_AVG_FRAME_RATE![ov];[mn][ov]overlay=main_w-overlay_w:10:eof_action=endall" & SET "FILTER_DELIMITER=, "
+        SET "OVERLAY_FILTER=!OVERLAY_FILTER!!FILTER_DELIMITER![0]setpts=PTS-STARTPTS[mn];[1]setpts=PTS-STARTPTS,fps=!VIDEO_AVG_FRAME_RATE![ov];[mn][ov]overlay=main_w-overlay_w:10:eof_action=endall" & SET "FILTER_DELIMITER=, "
     ) ELSE IF /I "!OVERLAY_POSITION!"=="bottom-right" (
-        SET "OVERLAY_FILTER=!OVERLAY_FILTER!!FILTER_DELIMITER![0]setpts=PTS-STARTPTS[mn];[1]setpts=PTS-STARTPTS,fps=!SOURCE_AVG_FRAME_RATE![ov];[mn][ov]overlay=main_w-overlay_w:main_h-overlay_h:eof_action=endall" & SET "FILTER_DELIMITER=, "
+        SET "OVERLAY_FILTER=!OVERLAY_FILTER!!FILTER_DELIMITER![0]setpts=PTS-STARTPTS[mn];[1]setpts=PTS-STARTPTS,fps=!VIDEO_AVG_FRAME_RATE![ov];[mn][ov]overlay=main_w-overlay_w:main_h-overlay_h:eof_action=endall" & SET "FILTER_DELIMITER=, "
     )
 )
 
 :: timestamp
 SET "PTS_OPTIONS=drawtext=fontfile=/Windows/Fonts/arial.ttf:fontsize=36:start_number=1:text='%%{pts\:gmtime\:0\:%%H\\\:%%M\\\:%%S} %%{n}:bordercolor=black:borderw=1'"
-SET "TIMECODE=drawtext=font=Lucida Sans:fontsize=36:start_number=1:timecode='00\:00\:00\:00': r=!SOURCE_AVG_FRAME_RATE!: bordercolor=black:borderw=1'"
+SET "TIMECODE=drawtext=font=Lucida Sans:fontsize=36:start_number=1:timecode='00\:00\:00\:00': r=!VIDEO_AVG_FRAME_RATE!: bordercolor=black:borderw=1'"
 
 :: set up source
 IF /I NOT "!ROLE!"=="receiver" (
     SET "INPUT_STREAM= -re -i !INPUT_SOURCE!"
     SET "BIT_RATE= -b:v 2M -maxrate 1M -bufsize 1M"
-    SET "TX_VIDEO_STREAM= -vcodec rawvideo -pix_fmt rgb24 -video_size !SOURCE_WIDTH!x!SOURCE_HEIGHT! -r !SOURCE_AVG_FRAME_RATE!!BIT_RATE! -f rawvideo tcp://127.0.0.1:!VIDEO_IN_PORT!"
+    SET "TX_VIDEO_STREAM= -vcodec rawvideo -pix_fmt rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -r !VIDEO_AVG_FRAME_RATE!!BIT_RATE! -f rawvideo tcp://127.0.0.1:!VIDEO_IN_PORT!"
     SET "TX_AUDIO_STREAM= -acodec pcm_s16le -f s16le tcp://127.0.0.1:!AUDIO_IN_PORT!"
     IF DEFINED TX_TIMESTAMP (SET "TRANSMIT_PTS=!FILTER_DELIMITER!!PTS_OPTIONS!:x=20:y=20:fontcolor=white" & SET "FILTER_DELIMITER=, ")
     IF DEFINED FILTER_DELIMITER (SET "TX_FILTER= -filter_complex "!OVERLAY_FILTER!!TRANSMIT_PTS!"")
@@ -499,14 +503,14 @@ IF /I NOT "!ROLE!"=="transmitter" (
         IF /I "!RECEIVER_MODE!"=="store" (SET "ENCODER_FORMAT= -f mp4") ELSE (SET "ENCODER_FORMAT= -f mpegts")
     )
 
-    SET "ENCODER_RAW= -an -c:v rawvideo -pix_fmt rgb24 -video_size !SOURCE_WIDTH!x!SOURCE_HEIGHT! -r !SOURCE_AVG_FRAME_RATE!!BIT_RATE!!OUTPUT_FORMAT!"
+    SET "ENCODER_RAW= -an -c:v rawvideo -pix_fmt rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -r !VIDEO_AVG_FRAME_RATE!!BIT_RATE!!OUTPUT_FORMAT!"
     IF /I "!RECEIVER_MODE!"=="stream" (
         SET "ENCODER_OUTPUT= -ac 2 -c:v libx264 -x264opts sliced-threads -pix_fmt yuv420p -crf 21 -preset veryfast -tune zerolatency -vsync cfr -g 10 -b:a 128k -f hls -hls_time 10 -hls_playlist_type event"
     ) ELSE (
         SET "ENCODER_OUTPUT= -ac 2 -c:v libx264 -x264opts sliced-threads -pix_fmt yuv420p -preset ultrafast -tune zerolatency -vsync cfr -g 10!ENCODER_FORMAT!"
     )
 
-    SET "RX_VIDEO_STREAM= -thread_queue_size !VIDEO_QUEUE_SIZE! -pixel_format rgb24 -video_size !SOURCE_WIDTH!x!SOURCE_HEIGHT! -framerate !SOURCE_AVG_FRAME_RATE! -f rawvideo -i tcp://127.0.0.1:!VIDEO_OUT_PORT!"
+    SET "RX_VIDEO_STREAM= -thread_queue_size !VIDEO_QUEUE_SIZE! -pixel_format rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -framerate !VIDEO_AVG_FRAME_RATE! -f rawvideo -i tcp://127.0.0.1:!VIDEO_OUT_PORT!"
     SET "RX_AUDIO_STREAM= -itsoffset !TIME_OFFSET! -thread_queue_size !AUDIO_QUEUE_SIZE! -f s16le -sample_rate 44100 -channels 2 -i tcp://127.0.0.1:!AUDIO_OUT_PORT!"
     IF DEFINED RX_TIMESTAMP (SET "RECEIVE_PTS=!PTS_OPTIONS!:x=(w-tw-20):y=20:fontcolor=white" & SET "FILTER_DELIMITER=, ")
     IF DEFINED FILTER_DELIMITER (SET "RX_FILTER= -vf "!RECEIVE_PTS!"")
@@ -515,8 +519,8 @@ IF /I NOT "!ROLE!"=="transmitter" (
 
 :: set up channel
 IF /I NOT "!ROLE!"=="receiver" (
-    :: -frame_rate !SOURCE_AVG_FRAME_RATE!
-    SET "CHANNEL_TRANSMITTER=!CDIPIPE_CMD! -role transmitter -channel !CHANNEL_TYPE! -adapter !ADAPTER_TYPE! -local_ip !LOCAL_IP! -remote_ip !REMOTE_IP! -port !PORT_NUMBER! -video_in_port !VIDEO_IN_PORT! -audio_in_port !AUDIO_IN_PORT! -frame_width !SOURCE_WIDTH! -frame_height !SOURCE_HEIGHT! -log_level !LOG_LEVEL!"
+    :: -frame_rate !VIDEO_AVG_FRAME_RATE!
+    SET "CHANNEL_TRANSMITTER=!CDIPIPE_CMD! -role transmitter -channel !CHANNEL_TYPE! -adapter !ADAPTER_TYPE! -local_ip !LOCAL_IP! -remote_ip !REMOTE_IP! -port !PORT_NUMBER! -video_in_port !VIDEO_IN_PORT! -audio_in_port !AUDIO_IN_PORT! -frame_width !VIDEO_WIDTH! -frame_height !VIDEO_HEIGHT! -log_level !LOG_LEVEL!"
 )
 
 IF /I NOT "!ROLE!"=="transmitter" (
@@ -535,7 +539,6 @@ IF /I NOT "!ROLE!"=="transmitter" (
 )
 
 IF DEFINED DEBUG (
-    IF DEFINED ANALIZER (ECHO ## ANALIZER & ECHO !ANALIZER! & ECHO.)
     IF DEFINED SOURCE (ECHO ## SOURCE & ECHO !SOURCE! & ECHO.)
     IF DEFINED DESTINATION (ECHO ## OUTPUT & ECHO !DESTINATION! & ECHO.)
     IF DEFINED CHANNEL_RECEIVER (ECHO ## RECEIVER & ECHO !CHANNEL_RECEIVER! & ECHO.)
@@ -570,9 +573,9 @@ ECHO     -role ^<type^>                          : type of role: transmitter ^| 
 ECHO     -mode ^<option^>                        : receiver mode: play ^| stream ^| store (optional, default: !RECEIVER_MODE!)
 ECHO     -log_level ^<value^>                    : log level : trace ^| debug ^| info ^| warning ^| error (optional, default: !LOG_LEVEL!)
 ECHO     -channel ^<type^>                       : type of channel: cdi ^| cdistream ^| tcp (optional, default: !CHANNEL_TYPE!)
-ECHO     -width ^<value^>                        : input source frame width (required in receiver mode, default: !DEFAULT_SOURCE_WIDTH!)
-ECHO     -height ^<value^>                       : input source frame height (required in receiver mode, default: !DEFAULT_SOURCE_HEIGHT!)
-ECHO     -framerate ^<value^>                    : input source frame rate (required in receiver mode, default: !DEFAULT_SOURCE_AVG_FRAME_RATE!)
+ECHO     -width ^<value^>                        : input source frame width (required in receiver mode, default: !DEFAULT_VIDEO_WIDTH!)
+ECHO     -height ^<value^>                       : input source frame height (required in receiver mode, default: !DEFAULT_VIDEO_HEIGHT!)
+ECHO     -framerate ^<value^>                    : input source frame rate (required in receiver mode, default: !DEFAULT_VIDEO_AVG_FRAME_RATE!)
 ECHO     -adapter ^<type^>                       : type of adapter: efa ^| socket ^| socketlibfabric
 ECHO                                             (optional, default: !ADAPTER_TYPE!)
 ECHO     -local_ip ^<ip_address^>                : local IP address (optional, default 127.0.0.1 or IP address 
