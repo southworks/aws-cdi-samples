@@ -260,15 +260,17 @@ IF DEFINED LOCAL_IP (SET USE_NETWORK=1)
 IF DEFINED REMOTE_IP (SET USE_NETWORK=1)
 IF DEFINED USE_NETWORK (FOR /f "tokens=2 delims=\[\]" %%A IN ('ping -n 1 -4 "%COMPUTERNAME%"') DO SET IP_ADDRESS=%%A) ELSE (SET IP_ADDRESS=127.0.0.1)
 
-IF /I "!ROLE!"=="receiver" (
-    CALL :ParseValue VIDEO_WIDTH width !VIDEO_WIDTH! !VIDEO_WIDTH!
-    IF "!ERRORLEVEL!"=="1" (GOTO exit)
+IF NOT DEFINED INPUT_SOURCE (
+    IF /I "!ROLE!"=="receiver" (
+        CALL :ParseValue VIDEO_WIDTH width !VIDEO_WIDTH! !VIDEO_WIDTH!
+        IF "!ERRORLEVEL!"=="1" (GOTO exit)
 
-    CALL :ParseValue VIDEO_HEIGHT height !VIDEO_HEIGHT! !VIDEO_HEIGHT!
-    IF "!ERRORLEVEL!"=="1" (GOTO exit)
+        CALL :ParseValue VIDEO_HEIGHT height !VIDEO_HEIGHT! !VIDEO_HEIGHT!
+        IF "!ERRORLEVEL!"=="1" (GOTO exit)
 
-    CALL :ParseValue VIDEO_AVG_FRAME_RATE framerate !VIDEO_AVG_FRAME_RATE! !VIDEO_AVG_FRAME_RATE!
-    IF "!ERRORLEVEL!"=="1" (GOTO exit)
+        CALL :ParseValue VIDEO_AVG_FRAME_RATE framerate !VIDEO_AVG_FRAME_RATE! !VIDEO_AVG_FRAME_RATE!
+        IF "!ERRORLEVEL!"=="1" (GOTO exit)
+    )
 ) ELSE (
     CALL :ParseValue INPUT_SOURCE source !INPUT_SOURCE! !INPUT_SOURCE!
     IF "!ERRORLEVEL!"=="1" (GOTO exit)
