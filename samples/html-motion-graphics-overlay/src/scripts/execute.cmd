@@ -34,7 +34,7 @@ SET "PORT_NUMBER=2000"
 SET "VIDEO_QUEUE_SIZE=1500"
 SET "AUDIO_QUEUE_SIZE=2000"
 SET "HTMLSRC_QUEUE_SIZE=2000"
-SET "TIME_OFFSET=0.3"
+SET "TIME_OFFSET=0.9"
 SET "CHANNEL_TYPE=cdistream"
 SET "ADAPTER_TYPE=socketlibfabric"
 SET "ROLE=both"
@@ -378,7 +378,7 @@ IF DEFINED INPUT_SOURCE (
 
     SET "AUDIO_METADATA=stream=codec_name,sample_rate,channels,channel_layout,bits_per_sample,duration,duration_ts,bit_rate,max_bit_rate,bits_per_raw_sample : format=duration"
     SET "ANALYZE_AUDIO=!FFPROBE_CMD! -hide_banner -v error -select_streams a:!AUDIO_STREAM_ID! -show_entries "!AUDIO_METADATA!" -of default=noprint_wrappers=1 !INPUT_SOURCE!"
-    FOR /F "tokens=1,2,3 delims=^=" %%G IN ('!ANALYZE_AUDIO!') DO (SET "AUDIO_%%G=%%H")
+    FOR /F "tokens=1,2,3 delims=^=" %%G IN ('!ANALYZE_AUDIO!') DO (SET "AUDIO_%%G=%%H")    
 )
 
 :show_options
@@ -514,7 +514,7 @@ IF /I NOT "!ROLE!"=="transmitter" (
     SET "RX_AUDIO_STREAM= -itsoffset !TIME_OFFSET! -thread_queue_size !AUDIO_QUEUE_SIZE! -f s16le -sample_rate 44100 -channels 2 -i tcp://127.0.0.1:!AUDIO_OUT_PORT!"
     IF DEFINED RX_TIMESTAMP (SET "RECEIVE_PTS=!PTS_OPTIONS!:x=(w-tw-20):y=20:fontcolor=white" & SET "FILTER_DELIMITER=, ")
     IF DEFINED FILTER_DELIMITER (SET "RX_FILTER= -vf "!RECEIVE_PTS!"")
-    SET "ENCODER=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS!!RX_VIDEO_STREAM!!RX_AUDIO_STREAM!!RX_FILTER!!ENCODER_OUTPUT!"
+    SET "ENCODER=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS!!RX_AUDIO_STREAM!!RX_VIDEO_STREAM!!RX_FILTER!!ENCODER_OUTPUT!"
 )
 
 :: set up channel
