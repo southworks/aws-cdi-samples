@@ -413,6 +413,11 @@ ECHO   Source                 : channel
 ECHO     Width                : !VIDEO_WIDTH!
 ECHO     Height               : !VIDEO_HEIGHT!
 ECHO     Frame Rate           : !VIDEO_AVG_FRAME_RATE!
+IF /I NOT "!ROLE!"=="receiver" (
+    ECHO     Audio Codec          : !AUDIO_CODEC_NAME!
+    ECHO     Audio Channels       : !AUDIO_CHANNELS!
+    ECHO     Audio Sampling Rate  : !AUDIO_SAMPLE_RATE!
+)
 ECHO.
 IF DEFINED OVERLAY_SOURCE (
 ECHO   Overlay source         : !OVERLAY_SOURCE!
@@ -495,8 +500,9 @@ SET "TIMECODE=drawtext=font=Lucida Sans:fontsize=36:start_number=1:timecode='00\
 IF /I NOT "!ROLE!"=="receiver" (
     SET "INPUT_STREAM= -re -i !INPUT_SOURCE!"
     SET "BIT_RATE= -b:v 2M -maxrate 1M -bufsize 1M"
+    IF /I "!AUDIO_CODEC_NAME!"=="aac" (SET "AUDIO_FORMAT=adts") ELSE (SET "AUDIO_FORMAT=!AUDIO_CODEC_NAME!")
     SET "TX_VIDEO_STREAM= -map 0:v:!VIDEO_STREAM_INDEX! -c:v rawvideo -pix_fmt rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -r !VIDEO_AVG_FRAME_RATE!!BIT_RATE! -f rawvideo tcp://127.0.0.1:!VIDEO_IN_PORT!"
-    SET "TX_AUDIO_STREAM= -map 0:a:!AUDIO_STREAM_INDEX! -c:a copy -f !AUDIO_CODEC_NAME! tcp://127.0.0.1:!AUDIO_IN_PORT!"
+    SET "TX_AUDIO_STREAM= -map 0:a:!AUDIO_STREAM_INDEX! -c:a copy -f !AUDIO_FORMAT! tcp://127.0.0.1:!AUDIO_IN_PORT!"
     IF DEFINED TX_TIMESTAMP (SET "TRANSMIT_PTS=!FILTER_DELIMITER!!PTS_OPTIONS!:x=20:y=20:fontcolor=white" & SET "FILTER_DELIMITER=, ")
     IF DEFINED FILTER_DELIMITER (SET "TX_FILTER= -filter_complex "!OVERLAY_FILTER!!TRANSMIT_PTS!"")
     SET "TX_PROCESSOR=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS!!INPUT_STREAM!!OVERLAY_STREAM!!TX_FILTER!!TX_VIDEO_STREAM!!TX_AUDIO_STREAM!"
@@ -520,7 +526,7 @@ IF /I NOT "!ROLE!"=="transmitter" (
     )
 
     SET "RX_VIDEO_STREAM= -itsoffset !TIME_OFFSET! -thread_queue_size !VIDEO_QUEUE_SIZE! -pixel_format rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -framerate !VIDEO_AVG_FRAME_RATE! -f rawvideo -i tcp://127.0.0.1:!VIDEO_OUT_PORT!"
-    SET "RX_AUDIO_STREAM= -thread_queue_size !AUDIO_QUEUE_SIZE! -f !AUDIO_CODEC_NAME! -i tcp://127.0.0.1:!AUDIO_OUT_PORT!"
+    SET "RX_AUDIO_STREAM= -thread_queue_size !AUDIO_QUEUE_SIZE! -i tcp://127.0.0.1:!AUDIO_OUT_PORT!"
     IF DEFINED RX_TIMESTAMP (SET "RECEIVE_PTS=!PTS_OPTIONS!:x=(w-tw-20):y=20:fontcolor=white" & SET "FILTER_DELIMITER=, ")
     IF DEFINED FILTER_DELIMITER (SET "RX_FILTER= -vf "!RECEIVE_PTS!"")
     SET "ENCODER=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS!!RX_AUDIO_STREAM!!RX_VIDEO_STREAM!!RX_FILTER!!ENCODER_OUTPUT!"
