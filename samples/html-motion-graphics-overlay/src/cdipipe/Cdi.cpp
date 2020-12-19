@@ -184,46 +184,46 @@ void CdiTools::Cdi::show_stream_configuration(uint16_t stream_identifier, Logger
     using std::setw;
     using std::left;
 
-    const int lvl = 34;
+    const int lvl = 2;
     switch (config.payload_type) {
     case CdiBaselineAvmPayloadType::kCdiAvmVideo:
         CdiAvmVideoConfig video_config = config.video_config;
-        logger.debug()
+        logger.info()
             << "Received configuration for stream #" << stream_identifier << ", type: video\n"
-            << left << setw(lvl) << "  Version: " << video_config.version.major << "." << video_config.version.minor << "\n"
-            << left << setw(lvl) << "  Width: " << video_config.width << "\n"
-            << left << setw(lvl) << "  Height: " << video_config.height << "\n"
-            << left << setw(lvl) << "  Sampling: " << video_config.sampling << "\n"
-            << left << setw(lvl) << "  Alpha channel: " << video_config.alpha_channel << "\n"
-            << left << setw(lvl) << "  Depth: " << video_config.depth << "\n"
-            << left << setw(lvl) << "  Frame rate numerator: " << video_config.frame_rate_num << "\n"
-            << left << setw(lvl) << "  Frame rate denominator: " << video_config.frame_rate_den << "\n"
-            << left << setw(lvl) << "  Colorimetry: " << video_config.colorimetry << "\n"
-            << left << setw(lvl) << "  Interlace: " << std::boolalpha << video_config.interlace << "\n"
-            << left << setw(lvl) << "  Segmented: " << std::boolalpha << video_config.segmented << "\n"
-            << left << setw(lvl) << "  Transfer characteristic system: " << video_config.tcs << "\n"
-            << left << setw(lvl) << "  Signal encoding range: " << video_config.range << "\n";
+            << left << setw(lvl) << "Version: " << video_config.version.major << "." << video_config.version.minor << "\n"
+            << left << setw(lvl) << "Width: " << video_config.width << "\n"
+            << left << setw(lvl) << "Height: " << video_config.height << "\n"
+            << left << setw(lvl) << "Sampling: " << video_config.sampling << "\n"
+            << left << setw(lvl) << "Alpha channel: " << video_config.alpha_channel << "\n"
+            << left << setw(lvl) << "Depth: " << video_config.depth << "\n"
+            << left << setw(lvl) << "Frame rate numerator: " << video_config.frame_rate_num << "\n"
+            << left << setw(lvl) << "Frame rate denominator: " << video_config.frame_rate_den << "\n"
+            << left << setw(lvl) << "Colorimetry: " << video_config.colorimetry << "\n"
+            << left << setw(lvl) << "Interlace: " << std::boolalpha << video_config.interlace << "\n"
+            << left << setw(lvl) << "Segmented: " << std::boolalpha << video_config.segmented << "\n"
+            << left << setw(lvl) << "Transfer characteristic system: " << video_config.tcs << "\n"
+            << left << setw(lvl) << "Signal encoding range: " << video_config.range << "\n";
         break;
 
     case CdiBaselineAvmPayloadType::kCdiAvmAudio:
         CdiAvmAudioConfig audio_config = config.audio_config;
-        logger.debug()
+        logger.info()
             << "Received configuration for stream #" << stream_identifier << ", type: audio\n"
-            << left << setw(lvl) << "  Version: " << audio_config.version.major << "." << audio_config.version.minor << "\n"
-            << left << setw(lvl) << "  Grouping: " << audio_config.grouping << "\n"
-            << left << setw(lvl) << "  Language: " << audio_config.language << "\n"
-            << left << setw(lvl) << "  Sample rate (kHz): " << audio_config.sample_rate_khz << "\n";
+            << left << setw(lvl) << "Version: " << audio_config.version.major << "." << audio_config.version.minor << "\n"
+            << left << setw(lvl) << "Grouping: " << audio_config.grouping << "\n"
+            << left << setw(lvl) << "Language: " << audio_config.language << "\n"
+            << left << setw(lvl) << "Sample rate (kHz): " << audio_config.sample_rate_khz << "\n";
         break;
 
     case CdiBaselineAvmPayloadType::kCdiAvmAncillary:
         CdiAvmAncillaryDataConfig ancillary_data_config = config.ancillary_data_config;
-        logger.debug()
+        logger.info()
             << "Received configuration for stream #" << stream_identifier << ", type: ancillary\n"
             << left << setw(lvl) << "Version: " << ancillary_data_config.version.major << "." << ancillary_data_config.version.minor << "\n";
         break;
 
     case CdiBaselineAvmPayloadType::kCdiAvmNotBaseline:
-        logger.debug()
+        logger.info()
             << "Received configuration for stream #" << stream_identifier << ", type: not baseline\n"
             << left << setw(lvl) << "Version: " << ancillary_data_config.version.major << "." << ancillary_data_config.version.minor << "\n";
         break;
