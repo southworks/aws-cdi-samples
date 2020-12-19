@@ -10,6 +10,12 @@
 
 #include "Logger.h"
 
+const int SOURCE_COLUMN_WIDTH = 12;
+const int MICROSECONDS_COLUMN_WIDTH = 6;
+const int TIMESTAMP_COLUMN_WIDTH = 9 + MICROSECONDS_COLUMN_WIDTH;
+const int LOG_LEVEL_COLUMN_WIDTH = 7;
+const int THREAD_ID_COLUMN_WIDTH = 5;
+
 LogLevel Logger::log_level_{ LogLevel::Info };
 std::thread Logger::logger_thread_;
 boost::asio::io_context Logger::io_{ };
@@ -114,7 +120,11 @@ void Logger::write(LogLevel log_level, const std::string& source, std::stringstr
     bool indent = false;
     while (std::getline(log_entry, message)) {
         if (indent) {
-            log_entry_text << "\n" << std::setw(25) << std::setfill(' ') << "";
+            const int margin = SOURCE_COLUMN_WIDTH + 3
+                + (show_timestamp_ ? TIMESTAMP_COLUMN_WIDTH : 0) + 1
+                + LOG_LEVEL_COLUMN_WIDTH + 1
+                + (show_thread_id_ ? THREAD_ID_COLUMN_WIDTH : 0) + 3;
+            log_entry_text << "\n" << std::setw(margin) << std::setfill(' ') << "";
         }
 
         log_entry_text << message;
@@ -131,7 +141,7 @@ void Logger::flush(LogLevel log_level, const std::string& source, const std::str
     }
 
     if (!source_.empty()) {
-        stream_ << "[" << std::setw(12) << std::left << source << "] ";
+        stream_ << "[" << std::setw(SOURCE_COLUMN_WIDTH) << std::left << source << "] ";
     }
 
     if (show_timestamp_) {
@@ -139,17 +149,17 @@ void Logger::flush(LogLevel log_level, const std::string& source, const std::str
         auto time_point = system_clock::now();
         auto time_t = system_clock::to_time_t(time_point);
         stream_ << std::put_time(std::localtime(&time_t), timestamp_format_)
-            << "." << std::setw(6) << std::setfill('0') << std::right
+            << "." << std::setw(MICROSECONDS_COLUMN_WIDTH) << std::setfill('0') << std::right
             << duration_cast<microseconds>(time_point - system_clock::from_time_t(time_t)).count()
             << std::setfill(' ') << " ";
     }
 
     if (log_level != LogLevel::Message) {
-        stream_ << std::setw(7) << std::left << get_severity(log_level) << ": ";
+        stream_ << std::setw(LOG_LEVEL_COLUMN_WIDTH) << std::left << get_severity(log_level) << ": ";
     }
 
     if (show_thread_id_) {
-        stream_ << std::setw(5) << std::setfill('0') << std::right << thread_id << std::setfill(' ') << ": " ;
+        stream_ << std::setw(THREAD_ID_COLUMN_WIDTH) << std::setfill('0') << std::right << thread_id << std::setfill(' ') << ": " ;
     }
 
     stream_ << message;
