@@ -128,56 +128,41 @@ void CdiTools::TcpConnection::async_receive(ReceiveHandler handler)
         sgl.push_back(mutable_buffer{ sgl_entry_ptr->address_ptr, (size_t)sgl_entry_ptr->size_in_bytes });
     }
 
+    auto read_complete = [&, payload, handler](const asio_error& ec, std::size_t bytes_received) {
+        auto payloads_received = ++payloads_received_;
+        if (ec) {
+            auto payload_errors = ++payload_errors_;
+            LOG_DEBUG << "TCP receive failure: " << ec.message() << ", code: " << ec.value() << ", total errors: " << payload_errors << ".";
+            if (error::connection_reset == ec || error::connection_aborted == ec || error::eof == ec) {
+                std::error_code err;
+                disconnect(err);
+            }
+        }
+        else {
+            LOG_TRACE << "TCP received payload #" << payload->stream_identifier() << "/" << payloads_received
+#ifdef TRACE_PAYLOADS
+                << " (" << payload->sequence() << ")"
+#endif
+                << ", size:" << bytes_received << "...";
+        }
+
+        if (bytes_received > 0) {
+            payload->set_size(static_cast<int>(bytes_received));
+            notify_payload_received(handler, ec, payload);
+        }
+    };
+
     LOG_TRACE << "TCP waiting for payload #" << payload->stream_identifier() << ":" << payloads_received_ + 1
 #ifdef TRACE_PAYLOADS
         << " (" << payload->sequence() << ")"
 #endif
         << "...";
-    if (default_stream->payload_type() == PayloadType::Video) {
-        async_read(socket_, sgl, [&, payload, handler](const asio_error& ec, std::size_t bytes_received) {
-            auto payloads_received = ++payloads_received_;
-            if (ec) {
-                auto payload_errors = ++payload_errors_;
-                LOG_DEBUG << "TCP receive failure: " << ec.message() << ", code: " << ec.value() << ", total errors: " << payload_errors << ".";
-                if (error::connection_reset == ec || error::connection_aborted == ec || error::eof == ec) {
-                    std::error_code err;
-                    disconnect(err);
-                }
-            }
-            else {
-                LOG_TRACE << "TCP received payload #" << payload->stream_identifier() << "/" << payloads_received 
-#ifdef TRACE_PAYLOADS
-                    << " (" << payload->sequence() << ")"
-#endif
-                    << ", size:" << bytes_received << "...";
-            }
 
-            payload->set_size(static_cast<int>(bytes_received));
-            notify_payload_received(handler, ec, payload);
-        });
+    if (default_stream->payload_type() == PayloadType::Video) {
+        async_read(socket_, sgl, read_complete);
     }
     else {
-        socket_.async_read_some(sgl, [&, payload, handler](const asio_error& ec, std::size_t bytes_received) {
-            auto payloads_received = ++payloads_received_;
-            if (ec) {
-                auto payload_errors = ++payload_errors_;
-                LOG_DEBUG << "TCP receive failure: " << ec.message() << ", code: " << ec.value() << ", total errors: " << payload_errors << ".";
-                if (error::connection_reset == ec || error::connection_aborted == ec || error::eof == ec) {
-                    std::error_code err;
-                    disconnect(err);
-                }
-            }
-            else {
-                LOG_TRACE << "TCP received payload #" << payload->stream_identifier() << ":" << payloads_received 
-#ifdef TRACE_PAYLOADS
-                    << " (" << payload->sequence() << ")"
-#endif
-                    << ", size:" << bytes_received << "...";
-            }
-
-            payload->set_size(static_cast<int>(bytes_received));
-            notify_payload_received(handler, ec, payload);
-        });
+        socket_.async_read_some(sgl, read_complete);
     }
 }
 
