@@ -321,32 +321,47 @@ std::shared_ptr<CdiTools::Stream> CdiTools::Channel::add_video_stream(
     uint16_t stream_identifier, int frame_width, int frame_height,
     int bytes_per_pixel, int frame_rate_numerator, int frame_rate_denominator)
 {
-    // TODO: validate that stream_identifier is not already defined
-    auto stream = std::make_shared<VideoStream>(stream_identifier, frame_width,
-        frame_height, bytes_per_pixel, frame_rate_numerator, frame_rate_denominator);
-    streams_.push_back(stream);
+    if (std::find_if(streams_.begin(), streams_.end(),
+        [=](const std::shared_ptr<Stream>& stream) { return stream->id() == stream_identifier; }) == streams_.end()) {
+        auto stream = std::make_shared<VideoStream>(stream_identifier, frame_width,
+            frame_height, bytes_per_pixel, frame_rate_numerator, frame_rate_denominator);
+        streams_.push_back(stream);
 
-    return stream;
+        return stream;
+    }
+
+    throw InvalidConfigurationException(std::string("Cannot add video stream #" + std::to_string(stream_identifier)
+        + ". A stream with the same identifier has already been defined."));
 }
 
 std::shared_ptr<CdiTools::Stream> CdiTools::Channel::add_audio_stream(
     uint16_t stream_identifier, AudioChannelGrouping channel_grouping,
     AudioSamplingRate audio_sampling_rate, int bytes_per_sample, const std::string& language)
 {
-    // TODO: validate that stream_identifier is not already defined
-    auto stream = std::make_shared<AudioStream>(stream_identifier, channel_grouping, audio_sampling_rate, bytes_per_sample, language);
-    streams_.push_back(stream);
+    if (std::find_if(streams_.begin(), streams_.end(),
+        [=](const std::shared_ptr<Stream>& stream) { return stream->id() == stream_identifier; }) == streams_.end()) {
+        auto stream = std::make_shared<AudioStream>(stream_identifier, channel_grouping, audio_sampling_rate, bytes_per_sample, language);
+        streams_.push_back(stream);
 
-    return stream;
+        return stream;
+    }
+
+    throw InvalidConfigurationException(std::string("Cannot add audio stream #" + std::to_string(stream_identifier) 
+        + ". A stream with the same identifier has already been defined."));
 }
 
 std::shared_ptr<CdiTools::Stream> CdiTools::Channel::add_ancillary_stream(uint16_t stream_identifier)
 {
-    // TODO: validate that stream_identifier is not already defined
-    auto stream = std::make_shared<AncillaryStream>(stream_identifier);
-    streams_.push_back(stream);
+    if (std::find_if(streams_.begin(), streams_.end(),
+        [=](const std::shared_ptr<Stream>& stream) { return stream->id() == stream_identifier; }) == streams_.end()) {
+        auto stream = std::make_shared<AncillaryStream>(stream_identifier);
+        streams_.push_back(stream);
 
-    return stream;
+        return stream;
+    }
+
+    throw InvalidConfigurationException(std::string("Cannot add ancillary stream #" + std::to_string(stream_identifier)
+        + ". A stream with the same identifier has already been defined."));
 }
 
 void CdiTools::Channel::map_stream(uint16_t stream_identifier, const std::string& connection_name)
