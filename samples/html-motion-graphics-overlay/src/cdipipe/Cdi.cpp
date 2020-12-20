@@ -105,7 +105,7 @@ CdiReturnStatus CdiTools::Cdi::create_stream_configuration(
     video_config = { 0 };
     video_config.width = stream->frame_width();
     video_config.height = stream->frame_height();
-    video_config.sampling = CdiAvmVideoSampling::kCdiAvmVidYCbCr422;
+    video_config.sampling = CdiAvmVideoSampling::kCdiAvmVidRGB;
     video_config.alpha_channel = CdiAvmVideoAlphaChannel::kCdiAvmAlphaUnused;
     video_config.depth = CdiAvmVideoBitDepth::kCdiAvmVidBitDepth10;
     video_config.frame_rate_num = stream->frame_rate_numerator();
