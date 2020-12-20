@@ -86,7 +86,7 @@ CdiTools::PayloadData::~PayloadData()
 
 #ifdef TRACE_PAYLOADS
         LOG_TRACE << "Destroyed payload buffer #" << sequence_number_ << " and released to the pool, stream: " << stream_identifier_
-            << ", size: " << get_size()
+            << ", size: " << allocated_size_
             << ", free items: " << Application::get()->get_pool_free_buffer_count(get_size())
             << ".";
 #endif

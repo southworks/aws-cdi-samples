@@ -250,7 +250,6 @@ void CdiTools::Channel::write_complete(
     }
 
     auto& buffer = connection->get_buffer();
-    buffer.pop_front();
 
     if (!ec) {
 #ifdef TRACE_PAYLOADS
@@ -264,10 +263,11 @@ void CdiTools::Channel::write_complete(
             << " (" << sequence << ")"
             << ", size: " << size
 #endif
-            << ", queue length/size: " << buffer.size() << "/" << buffer.capacity()
+            << ", queue length/size: " << buffer.size() - 1 << "/" << buffer.capacity()
             << ".";
     }
 
+    buffer.pop_front();
     async_write(connection, ec, handler);
 }
 
