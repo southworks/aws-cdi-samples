@@ -213,9 +213,10 @@ std::shared_ptr<CdiTools::Channel> CdiTools::Application::configure_channel(Chan
 
 int CdiTools::Application::run(ChannelRole channel_role, bool show_channel_config)
 {
-    Logger::start(Configuration::log_level, Configuration::log_file);
-
+    int exit_code = 0;
     std::shared_ptr<Channel> channel;
+
+    Logger::start(Configuration::log_level, Configuration::log_file);
 
     try
     {
@@ -272,14 +273,14 @@ int CdiTools::Application::run(ChannelRole channel_role, bool show_channel_confi
         if (shutdown.joinable()) {
             shutdown.join();
         }
-
-        Logger::shutdown();
-
-        return 0;
     }
     catch (const std::exception& exception)
     {
         std::cout << "ERROR: " << exception.what() << std::endl;
-        return 1;
+        exit_code = 1;
     }
+
+    Logger::shutdown();
+
+    return exit_code;
 }

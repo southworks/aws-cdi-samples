@@ -91,8 +91,8 @@ void Logger::start(LogLevel log_level, const std::string& file_name, bool show_t
         stream_.rdbuf(&log_file_);
     }
 
+    active_ = std::make_unique<boost::asio::io_context::work>(io_);
     logger_thread_ = std::thread([&]() {
-        active_ = std::make_unique<boost::asio::io_context::work>(io_);
         io_.run();
     });
 }
