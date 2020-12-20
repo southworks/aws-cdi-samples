@@ -393,11 +393,20 @@ IF DEFINED INPUT_SOURCE (
 :show_options
 IF DEFINED QUIET_MODE GOTO quiet
 
-ECHO.
 ECHO Current options:
 ECHO   Role                   : !ROLE!
 ECHO   Mode                   : !RECEIVER_MODE!
 ECHO   Log level              : !LOG_LEVEL!
+IF DEFINED TX_TIMESTAMP (
+    ECHO   Transmitter Timestamp  : yes
+) ELSE (
+    ECHO   Transmitter Timestamp  : no
+)
+IF DEFINED RX_TIMESTAMP (
+    ECHO   Receiver Timestamp     : yes
+) ELSE (
+    ECHO   Receiver Timestamp     : no
+)
 ECHO.
 ECHO   Channel                : !CHANNEL_TYPE!
 ECHO     Adapter Type         : !ADAPTER_TYPE!
@@ -457,17 +466,6 @@ IF DEFINED OUTPUT (
     ECHO   Output format          : !OUTPUT_FORMAT!
 )
 
-ECHO.
-IF DEFINED TX_TIMESTAMP (
-    ECHO   Tx timestamp           : yes
-) ELSE (
-    ECHO   Tx timestamp           : no
-)
-IF DEFINED RX_TIMESTAMP (
-    ECHO   Rx timestamp           : yes
-) ELSE (
-    ECHO   Rx timestamp           : no
-)
 ECHO.
 
 :quiet
