@@ -1,5 +1,3 @@
-#include <cassert>
-
 #include "PayloadBuffer.h"
 
 CdiTools::PayloadBuffer::PayloadBuffer(size_t buffer_capacity)
@@ -31,7 +29,6 @@ CdiTools::Payload CdiTools::PayloadBuffer::front()
 void CdiTools::PayloadBuffer::pop_front()
 {
     std::lock_guard<std::mutex> lock(gate_);
-    assert(!buffer_.empty());
     if (!buffer_.empty()) {
         buffer_.pop_front();
     }

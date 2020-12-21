@@ -86,9 +86,15 @@ void CdiTools::TcpConnection::disconnect(std::error_code& ec)
 {
     asio_error err;
     if (socket_.is_open()) {
-        auto endpoint = socket_.remote_endpoint();
-        socket_.shutdown(socket_base::shutdown_both, err);
-        LOG_DEBUG << "TCP connection to " << endpoint << " was closed.";
+        auto endpoint = socket_.remote_endpoint(err);
+        if (!err) {
+            socket_.shutdown(socket_base::shutdown_both, err);
+            if (!err) {
+                LOG_DEBUG << "TCP connection to " << endpoint << " was closed.";
+            }
+        }
+
+        err.clear();
     }
 
     socket_.close(err);
