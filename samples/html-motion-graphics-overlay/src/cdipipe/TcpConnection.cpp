@@ -122,7 +122,7 @@ void CdiTools::TcpConnection::async_receive(ReceiveHandler handler)
 #ifdef TRACE_PAYLOADS
             << " (" << payload->sequence() << ")"
 #endif
-            " from the pool, total errors : " << payload_errors << ".";
+            << " from the pool, total errors : " << payload_errors << ".";
 
         notify_payload_received(handler, connection_error::no_buffer_space, payload);
         return;
