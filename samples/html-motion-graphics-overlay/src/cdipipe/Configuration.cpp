@@ -19,6 +19,13 @@ std::string Configuration::remote_ip{ "127.0.0.1" };
 int Configuration::buffer_delay{ 0 };
 int Configuration::tx_timeout{ 0 };
 
+// CloudWatch settings
+#ifdef ENABLE_CLOUDWATCH
+std::string Configuration::cloudwatch_domain;
+std::string Configuration::cloudwatch_namespace;
+std::string Configuration::cloudwatch_region;
+#endif
+
 // buffer pool configuration
 const uint32_t Configuration::large_buffer_pool_item_size = 1920 * 1080 * 3;
 const uint32_t Configuration::small_buffer_pool_item_size = 2 * 2304;

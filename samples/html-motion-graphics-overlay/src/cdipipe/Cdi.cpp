@@ -6,6 +6,7 @@
 #include "VideoStream.h"
 #include "AudioStream.h"
 #include "AncillaryStream.h"
+#include "Configuration.h"
 
 using CdiTools::PayloadType;
 
@@ -238,7 +239,15 @@ void CdiTools::Cdi::initialize(
     CdiCoreConfigData core_config = {};
     core_config.default_log_level = map_log_level(log_level);
     core_config.global_log_method_data_ptr = &logger;
+    CloudWatchConfigData cloudwatch_config = {};
+#ifdef ENABLE_CLOUDWATCH
+    cloudwatch_config.dimension_domain_str = Configuration::cloudwatch_domain.c_str();
+    cloudwatch_config.namespace_str = Configuration::cloudwatch_namespace.c_str();
+    cloudwatch_config.region_str = Configuration::cloudwatch_region.c_str();
+    core_config.cloudwatch_config_ptr = &cloudwatch_config;
+#else
     core_config.cloudwatch_config_ptr = NULL;
+#endif
 
     CdiReturnStatus rs = CdiCoreInitialize(&core_config);
     if (CdiReturnStatus::kCdiStatusOk != rs) {

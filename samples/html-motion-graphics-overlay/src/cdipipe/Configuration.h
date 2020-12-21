@@ -26,6 +26,13 @@ namespace CdiTools
         static int buffer_delay;
         static int tx_timeout;
 
+        // CloudWatch settings
+#ifdef ENABLE_CLOUDWATCH
+        static std::string cloudwatch_domain;
+        static std::string cloudwatch_namespace;
+        static std::string cloudwatch_region;
+#endif
+
         // buffer pool configuration
         static const uint32_t large_buffer_pool_item_size;
         static const uint32_t small_buffer_pool_item_size;

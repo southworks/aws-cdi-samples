@@ -51,7 +51,11 @@ void CdiTools::CdiConnection::async_connect(ConnectHandler handler)
     config_data.stats_cb_ptr = NULL;
     config_data.stats_user_cb_param = NULL;
     config_data.stats_config.stats_period_seconds = 0;
+#ifdef ENABLE_CLOUDWATCH
     config_data.stats_config.disable_cloudwatch_stats = true;
+#else
+    config_data.stats_config.disable_cloudwatch_stats = false;
+#endif
 
     LOG_DEBUG << "Waiting to establish CDI connection to " << host_name_ << ":" << port_number_ << "...";
 
@@ -94,7 +98,11 @@ void CdiTools::CdiConnection::async_accept(ConnectHandler handler)
     config_data.stats_cb_ptr = NULL;
     config_data.stats_user_cb_param = NULL;
     config_data.stats_config.stats_period_seconds = 0;
+#ifdef ENABLE_CLOUDWATCH
     config_data.stats_config.disable_cloudwatch_stats = true;
+#else
+    config_data.stats_config.disable_cloudwatch_stats = false;
+#endif
 
     LOG_DEBUG << "Listening for CDI connections at " << Application::get()->get_adapter_ip_address() << ":" << port_number_ << "...";
 
