@@ -5,7 +5,13 @@
 enum class AudioChannelGrouping
 {
     Mono,
-    Stereo
+    DualMono,
+    Stereo,
+    MatrixStereo,
+    Surround_5_1,
+    Surround_7_1,
+    Surround_22_2,
+    Sdi
 };
 
 extern enum_map<AudioChannelGrouping> audio_channel_grouping_map;

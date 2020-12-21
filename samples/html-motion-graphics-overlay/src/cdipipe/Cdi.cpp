@@ -147,9 +147,15 @@ void CdiTools::Cdi::set_ptp_timestamp(CdiPtpTimestamp& timestamp)
 CdiAvmAudioChannelGrouping CdiTools::Cdi::map_channel_grouping(AudioChannelGrouping channel_grouping)
 {
     switch (channel_grouping) {
-    case AudioChannelGrouping::Mono: return kCdiAvmAudioM;
     default:
+    case AudioChannelGrouping::Mono: return kCdiAvmAudioM;
+    case AudioChannelGrouping::DualMono: return kCdiAvmAudioDM;
     case AudioChannelGrouping::Stereo: return kCdiAvmAudioST;
+    case AudioChannelGrouping::MatrixStereo: return kCdiAvmAudioLtRt;
+    case AudioChannelGrouping::Surround_5_1: return kCdiAvmAudio51;
+    case AudioChannelGrouping::Surround_7_1: return kCdiAvmAudio71;
+    case AudioChannelGrouping::Surround_22_2: return kCdiAvmAudio222;
+    case AudioChannelGrouping::Sdi: return kCdiAvmAudioSGRP;
     }
 }
 
@@ -175,7 +181,7 @@ CdiReturnStatus CdiTools::Cdi::create_stream_configuration(
     video_config.height = stream->frame_height();
     video_config.sampling = CdiAvmVideoSampling::kCdiAvmVidRGB;
     video_config.alpha_channel = CdiAvmVideoAlphaChannel::kCdiAvmAlphaUnused;
-    video_config.depth = CdiAvmVideoBitDepth::kCdiAvmVidBitDepth10;
+    video_config.depth = CdiAvmVideoBitDepth::kCdiAvmVidBitDepth8;
     video_config.frame_rate_num = stream->frame_rate_numerator();
     video_config.frame_rate_den = stream->frame_rate_denominator();
     video_config.colorimetry = CdiAvmColorimetry::kCdiAvmVidColorimetryBT709;
