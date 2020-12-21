@@ -37,6 +37,8 @@ int main(int argc, char* argv[])
         .add_option("frame_width",             "Input source frame width", Configuration::frame_width)
         .add_option("frame_height",            "Input source frame height", Configuration::frame_height)
         .add_option("frame_rate",              "Input source frame rate", frame_rate)
+        .add_option("audio_sampling_rate",     "Audio sampling rate", Configuration::audio_sampling_rate)
+        .add_option("audio_channel_grouping",  "Audio channel grouping", Configuration::audio_channel_grouping)
         .add_option("tx_timeout",              "Payload transmission timeout in microseconds", Configuration::tx_timeout)
 #ifdef ENABLE_CLOUDWATCH
         .add_option("cloudwatch_domain",       "Dimension associated with each metric", Configuration::cloudwatch_domain)
