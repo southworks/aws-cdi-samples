@@ -13,6 +13,73 @@ using CdiTools::PayloadType;
 static const char* large_payload_pool_name = "Large Buffer";
 static const char* small_payload_pool_name = "Small Buffer";
 
+enum_map<CdiBaselineAvmPayloadType> CdiBaselineAvmPayloadType_map{
+    { "kCdiAvmNotBaseline", CdiBaselineAvmPayloadType::kCdiAvmNotBaseline },
+    { "kCdiAvmVideo", CdiBaselineAvmPayloadType::kCdiAvmVideo },
+    { "kCdiAvmAudio", CdiBaselineAvmPayloadType::kCdiAvmAudio },
+    { "kCdiAvmAncillary", CdiBaselineAvmPayloadType::kCdiAvmAncillary }
+};
+
+enum_map<CdiAvmVideoSampling> CdiAvmVideoSampling_map{
+    { "kCdiAvmVidYCbCr444", ::kCdiAvmVidYCbCr444 },
+    { "kCdiAvmVidYCbCr422", CdiAvmVideoSampling::kCdiAvmVidYCbCr422 },
+    { "kCdiAvmVidRGB", CdiAvmVideoSampling::kCdiAvmVidRGB }
+};
+
+enum_map<CdiAvmVideoAlphaChannel> CdiAvmVideoAlphaChannel_map{
+    { "kCdiAvmAlphaUnused", CdiAvmVideoAlphaChannel::kCdiAvmAlphaUnused },
+    { "kCdiAvmAlphaUsed", CdiAvmVideoAlphaChannel::kCdiAvmAlphaUsed }
+};
+
+enum_map<CdiAvmVideoBitDepth> CdiAvmVideoBitDepth_map{
+    { "kCdiAvmVidBitDepth8", CdiAvmVideoBitDepth::kCdiAvmVidBitDepth8 },
+    { "kCdiAvmVidBitDepth10", CdiAvmVideoBitDepth::kCdiAvmVidBitDepth10 },
+    { "kCdiAvmVidBitDepth12", CdiAvmVideoBitDepth::kCdiAvmVidBitDepth12 }
+};
+
+enum_map<CdiAvmColorimetry> CdiAvmColorimetry_map{
+    { "kCdiAvmVidColorimetryBT601", CdiAvmColorimetry::kCdiAvmVidColorimetryBT601 },
+    { "kCdiAvmVidColorimetryBT709", CdiAvmColorimetry::kCdiAvmVidColorimetryBT709 },
+    { "kCdiAvmVidColorimetryBT2020", CdiAvmColorimetry::kCdiAvmVidColorimetryBT2020 },
+    { "kCdiAvmVidColorimetryBT2100", CdiAvmColorimetry::kCdiAvmVidColorimetryBT2100 },
+    { "kCdiAvmVidColorimetryST2065_1", CdiAvmColorimetry::kCdiAvmVidColorimetryST2065_1 },
+    { "kCdiAvmVidColorimetryST2065_3", CdiAvmColorimetry::kCdiAvmVidColorimetryST2065_3 },
+    { "kCdiAvmVidColorimetryXYZ", CdiAvmColorimetry::kCdiAvmVidColorimetryXYZ },
+};
+
+enum_map<CdiAvmVideoTcs> CdiAvmVideoTcs_map{
+    { "kCdiAvmVidTcsSDR", CdiAvmVideoTcs::kCdiAvmVidTcsSDR },
+    { "kCdiAvmVidTcsPQ", CdiAvmVideoTcs::kCdiAvmVidTcsPQ },
+    { "kCdiAvmVidTcsHLG", CdiAvmVideoTcs::kCdiAvmVidTcsHLG },
+    { "kCdiAvmVidTcsLinear", CdiAvmVideoTcs::kCdiAvmVidTcsLinear },
+    { "kCdiAvmVidTcsBT2100LINPQ", CdiAvmVideoTcs::kCdiAvmVidTcsBT2100LINPQ },
+    { "kCdiAvmVidTcsBT2100LINHLG", CdiAvmVideoTcs::kCdiAvmVidTcsBT2100LINHLG },
+    { "kCdiAvmVidTcsST2065_1", CdiAvmVideoTcs::kCdiAvmVidTcsST2065_1 },
+    { "kCdiAvmVidTcsST428_1", CdiAvmVideoTcs::kCdiAvmVidTcsST428_1 },
+    { "kCdiAvmVidTcsDensity", CdiAvmVideoTcs::kCdiAvmVidTcsDensity }
+};
+
+enum_map<CdiAvmVideoRange> CdiAvmVideoRange_map{
+    { "kCdiAvmVidRangeNarrow", CdiAvmVideoRange::kCdiAvmVidRangeNarrow },
+    { "kCdiAvmVidRangeFullProtect", CdiAvmVideoRange::kCdiAvmVidRangeFullProtect },
+    { "kCdiAvmVidRangeFull", CdiAvmVideoRange::kCdiAvmVidRangeFull }
+};
+
+enum_map<CdiAvmAudioChannelGrouping> CdiAvmAudioChannelGrouping_map{
+    { "kCdiAvmAudioM", CdiAvmAudioChannelGrouping::kCdiAvmAudioM },
+    { "kCdiAvmAudioST", CdiAvmAudioChannelGrouping::kCdiAvmAudioST },
+    { "kCdiAvmAudioLtRt", CdiAvmAudioChannelGrouping::kCdiAvmAudioLtRt },
+    { "kCdiAvmAudio51", CdiAvmAudioChannelGrouping::kCdiAvmAudio51 },
+    { "kCdiAvmAudio71", CdiAvmAudioChannelGrouping::kCdiAvmAudio71 },
+    { "kCdiAvmAudio222", CdiAvmAudioChannelGrouping::kCdiAvmAudio222 },
+    { "kCdiAvmAudioSGRP", CdiAvmAudioChannelGrouping::kCdiAvmAudioSGRP }
+};
+
+enum_map<CdiAvmAudioSampleRate> CdiAvmAudioSampleRate_map{
+    { "kCdiAvmAudioSampleRate48kHz", CdiAvmAudioSampleRate::kCdiAvmAudioSampleRate48kHz },
+    { "kCdiAvmAudioSampleRate96kHz", CdiAvmAudioSampleRate::kCdiAvmAudioSampleRate96kHz }
+};
+
 LogLevel CdiTools::Cdi::map_log_level(CdiLogLevel log_level)
 {
     switch (log_level)
@@ -185,48 +252,53 @@ void CdiTools::Cdi::show_stream_configuration(uint16_t stream_identifier, Logger
     using std::setw;
     using std::left;
 
-    const int lvl = 2;
+    const int width = 32;
+
     switch (config.payload_type) {
     case CdiBaselineAvmPayloadType::kCdiAvmVideo:
         CdiAvmVideoConfig video_config = config.video_config;
         logger.info()
-            << "Received configuration for stream #" << stream_identifier << ", type: video\n"
-            << left << setw(lvl) << "Version: " << video_config.version.major << "." << video_config.version.minor << "\n"
-            << left << setw(lvl) << "Width: " << video_config.width << "\n"
-            << left << setw(lvl) << "Height: " << video_config.height << "\n"
-            << left << setw(lvl) << "Sampling: " << video_config.sampling << "\n"
-            << left << setw(lvl) << "Alpha channel: " << video_config.alpha_channel << "\n"
-            << left << setw(lvl) << "Depth: " << video_config.depth << "\n"
-            << left << setw(lvl) << "Frame rate numerator: " << video_config.frame_rate_num << "\n"
-            << left << setw(lvl) << "Frame rate denominator: " << video_config.frame_rate_den << "\n"
-            << left << setw(lvl) << "Colorimetry: " << video_config.colorimetry << "\n"
-            << left << setw(lvl) << "Interlace: " << std::boolalpha << video_config.interlace << "\n"
-            << left << setw(lvl) << "Segmented: " << std::boolalpha << video_config.segmented << "\n"
-            << left << setw(lvl) << "Transfer characteristic system: " << video_config.tcs << "\n"
-            << left << setw(lvl) << "Signal encoding range: " << video_config.range << "\n";
+            << "Configuration for stream #" << stream_identifier << "\n"
+            << left << setw(width) << "Type" << ": " << enum_name(CdiBaselineAvmPayloadType_map, config.payload_type) << "\n"
+            << left << setw(width) << "Version" << ": " << video_config.version.major << "." << video_config.version.minor << "\n"
+            << left << setw(width) << "Width" << ": " << video_config.width << "\n"
+            << left << setw(width) << "Height" << ": " << video_config.height << "\n"
+            << left << setw(width) << "Sampling" << ": " << enum_name(CdiAvmVideoSampling_map, video_config.sampling) << "\n"
+            << left << setw(width) << "Alpha channel" << ": " << enum_name(CdiAvmVideoAlphaChannel_map, video_config.alpha_channel) << "\n"
+            << left << setw(width) << "Depth" << ": " << enum_name(CdiAvmVideoBitDepth_map, video_config.depth) << "\n"
+            << left << setw(width) << "Frame rate numerator" << ": " << video_config.frame_rate_num << "\n"
+            << left << setw(width) << "Frame rate denominator" << ": " << video_config.frame_rate_den << "\n"
+            << left << setw(width) << "Colorimetry" << ": " << enum_name(CdiAvmColorimetry_map, video_config.colorimetry) << "\n"
+            << left << setw(width) << "Interlace" << ": " << std::boolalpha << video_config.interlace << "\n"
+            << left << setw(width) << "Segmented" << ": " << std::boolalpha << video_config.segmented << "\n"
+            << left << setw(width) << "Transfer characteristic system" << ": " << enum_name(CdiAvmVideoTcs_map, video_config.tcs) << "\n"
+            << left << setw(width) << "Signal encoding range" << ": " << enum_name(CdiAvmVideoRange_map, video_config.range) << "\n";
         break;
 
     case CdiBaselineAvmPayloadType::kCdiAvmAudio:
         CdiAvmAudioConfig audio_config = config.audio_config;
         logger.info()
-            << "Received configuration for stream #" << stream_identifier << ", type: audio\n"
-            << left << setw(lvl) << "Version: " << audio_config.version.major << "." << audio_config.version.minor << "\n"
-            << left << setw(lvl) << "Grouping: " << audio_config.grouping << "\n"
-            << left << setw(lvl) << "Language: " << audio_config.language << "\n"
-            << left << setw(lvl) << "Sample rate (kHz): " << audio_config.sample_rate_khz << "\n";
+            << "Configuration for stream #" << stream_identifier << "\n"
+            << left << setw(width) << "Type" << ": " << enum_name(CdiBaselineAvmPayloadType_map, config.payload_type) << "\n"
+            << left << setw(width) << "Version" << ": " << audio_config.version.major << "." << audio_config.version.minor << "\n"
+            << left << setw(width) << "Grouping" << ": " << enum_name(CdiAvmAudioChannelGrouping_map, audio_config.grouping) << "\n"
+            << left << setw(width) << "Language" << ": " << std::string(audio_config.language, sizeof(audio_config.language)) << "\n"
+            << left << setw(width) << "Sample rate (kHz)" << ": " << enum_name(CdiAvmAudioSampleRate_map, audio_config.sample_rate_khz) << "\n";
         break;
 
     case CdiBaselineAvmPayloadType::kCdiAvmAncillary:
         CdiAvmAncillaryDataConfig ancillary_data_config = config.ancillary_data_config;
         logger.info()
-            << "Received configuration for stream #" << stream_identifier << ", type: ancillary\n"
-            << left << setw(lvl) << "Version: " << ancillary_data_config.version.major << "." << ancillary_data_config.version.minor << "\n";
+            << "Configuration for stream #" << stream_identifier << "\n"
+            << left << setw(width) << "Type" << ": " << enum_name(CdiBaselineAvmPayloadType_map, config.payload_type) << "\n"
+            << left << setw(width) << "Version" << ": " << ancillary_data_config.version.major << "." << ancillary_data_config.version.minor << "\n";
         break;
 
     case CdiBaselineAvmPayloadType::kCdiAvmNotBaseline:
         logger.info()
-            << "Received configuration for stream #" << stream_identifier << ", type: not baseline\n"
-            << left << setw(lvl) << "Version: " << ancillary_data_config.version.major << "." << ancillary_data_config.version.minor << "\n";
+            << "Configuration for stream #" << stream_identifier << "\n"
+            << left << setw(width) << "Type" << ": " << enum_name(CdiBaselineAvmPayloadType_map, config.payload_type) << "\n"
+            << left << setw(width) << "Version" << ": " << ancillary_data_config.version.major << "." << ancillary_data_config.version.minor << "\n";
         break;
     }
 }
