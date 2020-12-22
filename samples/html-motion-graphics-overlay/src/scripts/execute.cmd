@@ -659,11 +659,9 @@ ECHO.
 ECHO IMPORTANT: set the following environment variables before using or configure all required executables in the path.
 ECHO     FFMPEG_PATH : path to ffmpeg.exe, ffplay.exe, and ffprobe.exe
 ECHO     TOOLS_PATH  : path to htmlsrc.exe and cdipipe.exe
+ECHO     MEDIA_PATH  : path to source media files
 ECHO.
 ECHO To see some example command lines, type !SCRIPT_NAME! -examples
-ECHO.
-ECHO KNOWN ISSUES:
-ECHO.   - To stop, press 'q' with the focus on the player window. Then, press CTRL + C in the transmitter and receiver windows.
 ECHO.
 GOTO exit
 
