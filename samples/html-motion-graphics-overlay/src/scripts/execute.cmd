@@ -26,19 +26,21 @@ SET FORMAT_OPTIONS="rgb mp4"
 SET LOG_LEVEL_OPTIONS="trace debug info warning error"
 
 :: default values
-SET "VIDEO_IN_PORT=1000"
-SET "AUDIO_IN_PORT=1001"
-SET "VIDEO_OUT_PORT=3000"
-SET "AUDIO_OUT_PORT=3001"
-SET "PORT_NUMBER=2000"
+SET "DEFAULT_CHANNEL_TYPE=cdistream"
+SET "DEFAULT_ADAPTER_TYPE=socketlibfabric"
+SET "DEFAULT_IP=127.0.0.1"
+SET "DEFAULT_VIDEO_IN_PORT=1000"
+SET "DEFAULT_AUDIO_IN_PORT=1001"
+SET "DEFAULT_VIDEO_OUT_PORT=3000"
+SET "DEFAULT_AUDIO_OUT_PORT=3001"
+SET "DEFAULT_PORT_NUMBER=2000"
+SET "DEFAULT_LOG_LEVEL=info"
 SET "VIDEO_QUEUE_SIZE=1500"
 SET "AUDIO_QUEUE_SIZE=2000"
 SET "HTMLSRC_QUEUE_SIZE=2000"
 SET "VIDEO_STREAM_INDEX=0"
 SET "AUDIO_STREAM_INDEX=0"
 SET "TIME_OFFSET=0.9"
-SET "CHANNEL_TYPE=cdistream"
-SET "ADAPTER_TYPE=socketlibfabric"
 SET "ROLE=both"
 SET "RECEIVER_MODE=play"
 SET "OUTPUT_FORMAT=mp4"
@@ -263,9 +265,11 @@ IF NOT "%~1"=="" (
 )
 
 :validation
+IF /I "!ADAPTER_TYPE!"=="efa" (SET USE_NETWORK=1)
+IF NOT DEFINED ADAPTER_TYPE IF /I "!DEFAULT_ADAPTER_TYPE!"=="efa" (SET USE_NETWORK=1)
 IF DEFINED LOCAL_IP (SET USE_NETWORK=1)
 IF DEFINED REMOTE_IP (SET USE_NETWORK=1)
-IF DEFINED USE_NETWORK (FOR /f "tokens=2 delims=\[\]" %%A IN ('ping -n 1 -4 "%COMPUTERNAME%"') DO SET IP_ADDRESS=%%A) ELSE (SET IP_ADDRESS=127.0.0.1)
+IF DEFINED USE_NETWORK (FOR /f "tokens=2 delims=\[\]" %%A IN ('ping -n 1 -4 "%COMPUTERNAME%"') DO SET IP_ADDRESS=%%A) 
 
 IF NOT DEFINED INPUT_SOURCE (
     IF /I "!ROLE!"=="receiver" (
@@ -287,21 +291,6 @@ CALL :ParseOptions RECEIVER_MODE mode !RECEIVER_MODE_OPTIONS! !RECEIVER_MODE!
 IF "!ERRORLEVEL!"=="1" (GOTO exit)
 
 CALL :ParseOptions ROLE role !ROLE_OPTIONS! !ROLE! both
-IF "!ERRORLEVEL!"=="1" (GOTO exit)
-
-CALL :ParseOptions CHANNEL_TYPE channel !CHANNEL_OPTIONS! !CHANNEL_TYPE!
-IF "!ERRORLEVEL!"=="1" (GOTO exit)
-
-CALL :ParseOptions ADAPTER_TYPE adapter !ADAPTER_OPTIONS! !ADAPTER_TYPE!
-IF "!ERRORLEVEL!"=="1" (GOTO exit)
-
-CALL :ParseValue LOCAL_IP local_ip !LOCAL_IP! !IP_ADDRESS!
-IF "!ERRORLEVEL!"=="1" (GOTO exit)
-
-CALL :ParseValue REMOTE_IP remote_ip !REMOTE_IP! !IP_ADDRESS!
-IF "!ERRORLEVEL!"=="1" (GOTO exit)
-
-CALL :ParseValue PORT_NUMBER port !PORT_NUMBER!
 IF "!ERRORLEVEL!"=="1" (GOTO exit)
 
 CALL :ParseOptions OUTPUT_FORMAT output_format !FORMAT_OPTIONS! !OUTPUT_FORMAT!
@@ -408,11 +397,31 @@ IF DEFINED RX_TIMESTAMP (
     ECHO   Receiver Timestamp     : no
 )
 ECHO.
-ECHO   Channel                : !CHANNEL_TYPE!
-ECHO     Adapter Type         : !ADAPTER_TYPE!
-ECHO     Local IP Address     : !LOCAL_IP!
-ECHO     Remote IP Address    : !REMOTE_IP!
-ECHO     Port Number          : !PORT_NUMBER!
+IF DEFINED CHANNEL_TYPE (
+    ECHO   Channel                : !CHANNEL_TYPE!
+) ELSE (
+    ECHO   Channel                : !DEFAULT_CHANNEL_TYPE!
+)
+IF DEFINED ADAPTER_TYPE (
+    ECHO     Adapter Type         : !ADAPTER_TYPE!
+) ELSE (
+    ECHO     Adapter Type         : !DEFAULT_ADAPTER_TYPE!
+)
+IF DEFINED LOCAL_IP (
+    ECHO     Local IP Address     : !LOCAL_IP!
+) ELSE (
+    ECHO     Local IP Address     : !DEFAULT_IP!
+)
+IF DEFINED REMOTE_IP (
+    ECHO     Remote IP Address    : !REMOTE_IP!
+) ELSE (
+    ECHO     Remote IP Address    : !DEFAULT_IP!
+)
+IF DEFINED PORT_NUMBER (
+    ECHO     Port Number          : !PORT_NUMBER!
+) ELSE (
+    ECHO     Port Number          : !DEFAULT_PORT_NUMBER!
+)
 ECHO.
 IF /I NOT "!ROLE!"=="receiver" (
 ECHO   Source                 : !INPUT_SOURCE!
@@ -500,8 +509,10 @@ IF /I NOT "!ROLE!"=="receiver" (
     SET "INPUT_STREAM= -re -i !INPUT_SOURCE!"
     SET "BIT_RATE= -b:v 2M -maxrate 1M -bufsize 1M"
     IF /I "!AUDIO_CODEC_NAME!"=="aac" (SET "AUDIO_FORMAT=adts") ELSE (SET "AUDIO_FORMAT=!AUDIO_CODEC_NAME!")
-    SET "TX_VIDEO_STREAM= -map 0:v:!VIDEO_STREAM_INDEX! -c:v rawvideo -pix_fmt rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -r !VIDEO_AVG_FRAME_RATE!!BIT_RATE! -f rawvideo tcp://127.0.0.1:!VIDEO_IN_PORT!"
-    SET "TX_AUDIO_STREAM= -map 0:a:!AUDIO_STREAM_INDEX! -c:a copy -f !AUDIO_FORMAT! tcp://127.0.0.1:!AUDIO_IN_PORT!"
+    IF DEFINED VIDEO_IN_PORT (SET "VIDEO_IN_ENDPOINT=tcp://127.0.0.1:!VIDEO_IN_PORT!") ELSE (SET "VIDEO_IN_ENDPOINT=tcp://127.0.0.1:!DEFAULT_VIDEO_IN_PORT!")
+    IF DEFINED AUDIO_IN_PORT (SET "AUDIO_IN_ENDPOINT=tcp://127.0.0.1:!AUDIO_IN_PORT!") ELSE (SET "AUDIO_IN_ENDPOINT=tcp://127.0.0.1:!DEFAULT_AUDIO_IN_PORT!")
+    SET "TX_VIDEO_STREAM= -map 0:v:!VIDEO_STREAM_INDEX! -c:v rawvideo -pix_fmt rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -r !VIDEO_AVG_FRAME_RATE!!BIT_RATE! -f rawvideo !VIDEO_IN_ENDPOINT!"
+    SET "TX_AUDIO_STREAM= -map 0:a:!AUDIO_STREAM_INDEX! -c:a copy -f !AUDIO_FORMAT! !AUDIO_IN_ENDPOINT!"
     IF DEFINED OVERLAY_FILTER (SET "TX_FILTER=!TX_FILTER!!FILTER_DELIMITER!!OVERLAY_FILTER!") & SET "FILTER_DELIMITER=, ")
     IF DEFINED TX_TIMESTAMP (SET "TX_FILTER=!TX_FILTER!!FILTER_DELIMITER!!PTS_OPTIONS!:x=20:y=20:fontcolor=white" & SET "FILTER_DELIMITER=, ")
     IF DEFINED TX_FILTER (SET "TX_FILTER= -filter_complex "!TX_FILTER!"")
@@ -525,26 +536,42 @@ IF /I NOT "!ROLE!"=="transmitter" (
         SET "ENCODER_OUTPUT= -c:a copy -c:v libx264 -x264opts sliced-threads -pix_fmt yuv420p -preset ultrafast -tune zerolatency -vsync cfr -g 10!ENCODER_FORMAT!"
     )
 
-    SET "RX_VIDEO_STREAM= -itsoffset !TIME_OFFSET! -thread_queue_size !VIDEO_QUEUE_SIZE! -pixel_format rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -framerate !VIDEO_AVG_FRAME_RATE! -f rawvideo -i tcp://127.0.0.1:!VIDEO_OUT_PORT!"
-    SET "RX_AUDIO_STREAM= -thread_queue_size !AUDIO_QUEUE_SIZE! -i tcp://127.0.0.1:!AUDIO_OUT_PORT!"
+    IF DEFINED VIDEO_OUT_PORT (SET "VIDEO_OUT_ENDPOINT=tcp://127.0.0.1:!VIDEO_OUT_PORT!") ELSE (SET "VIDEO_OUT_ENDPOINT=tcp://127.0.0.1:!DEFAULT_VIDEO_OUT_PORT!")
+    IF DEFINED AUDIO_OUT_PORT (SET "AUDIO_OUT_ENDPOINT=tcp://127.0.0.1:!AUDIO_OUT_PORT!") ELSE (SET "AUDIO_OUT_ENDPOINT=tcp://127.0.0.1:!DEFAULT_AUDIO_OUT_PORT!")
+    SET "RX_VIDEO_STREAM= -itsoffset !TIME_OFFSET! -thread_queue_size !VIDEO_QUEUE_SIZE! -pixel_format rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -framerate !VIDEO_AVG_FRAME_RATE! -f rawvideo -i !VIDEO_OUT_ENDPOINT!"
+    SET "RX_AUDIO_STREAM= -thread_queue_size !AUDIO_QUEUE_SIZE! -i !AUDIO_OUT_ENDPOINT!"
     IF DEFINED RX_TIMESTAMP (SET "RX_FILTER=!RX_FILTER!!FILTER_DELIMITER!!PTS_OPTIONS!:x=(w-tw-20):y=20:fontcolor=white" & SET "FILTER_DELIMITER=, ")
     IF DEFINED RX_FILTER (SET "RX_FILTER= -filter_complex "!RX_FILTER!"")
     SET "ENCODER=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS!!RX_AUDIO_STREAM!!RX_VIDEO_STREAM!!RX_FILTER!!ENCODER_OUTPUT!"
 )
 
+IF /I "!ADAPTER_TYPE!"=="efa" (IF NOT DEFINED LOCAL_IP (SET "LOCAL_IP=!IP_ADDRESS!"))
+IF NOT DEFINED ADAPTER_TYPE IF /I "!DEFAULT_ADAPTER_TYPE!"=="efa" (IF NOT DEFINED LOCAL_IP (SET "LOCAL_IP=!IP_ADDRESS!"))
+IF DEFINED REMOTE_IP IF /I NOT "!REMOTE_IP!"=="!DEFAULT_IP!" IF NOT DEFINED LOCAL_IP (SET "LOCAL_IP=!IP_ADDRESS!")
+IF DEFINED CHANNEL_TYPE IF /I NOT "!CHANNEL_TYPE!"=="!DEFAULT_CHANNEL_TYPE!" (SET "NETWORK_PARAMETERS=!NETWORK_PARAMETERS! -channel !CHANNEL_TYPE!")
+IF DEFINED ADAPTER_TYPE IF /I NOT "!ADAPTER_TYPE!"=="!DEFAULT_ADAPTER_TYPE!" (SET "NETWORK_PARAMETERS=!NETWORK_PARAMETERS! -adapter !ADAPTER_TYPE!")
+IF DEFINED LOCAL_IP IF /I NOT "!LOCAL_IP!"=="!DEFAULT_LOCAL_IP!" (SET "NETWORK_PARAMETERS=!NETWORK_PARAMETERS! -local_ip !LOCAL_IP!")
+IF DEFINED REMOTE_IP IF /I NOT "!REMOTE_IP!"=="!DEFAULT_IP!" (SET "NETWORK_PARAMETERS=!NETWORK_PARAMETERS! -remote_ip !REMOTE_IP!")
+IF DEFINED PORT_NUMBER IF /I NOT "!PORT_NUMBER!"=="!DEFAULT_PORT_NUMBER!" (SET "NETWORK_PARAMETERS=!NETWORK_PARAMETERS! -port !PORT_NUMBER!")
+IF DEFINED VIDEO_IN_PORT IF /I NOT "!VIDEO_IN_PORT!"=="!DEFAULT_VIDEO_IN_PORT!" (SET "NETWORK_PARAMETERS=!NETWORK_PARAMETERS! -video_in_port !VIDEO_IN_PORT!")
+IF DEFINED VIDEO_OUT_PORT IF /I NOT "!VIDEO_OUT_PORT!"=="!DEFAULT_VIDEO_OUT_PORT!" (SET "NETWORK_PARAMETERS=!NETWORK_PARAMETERS! -video_out_port !VIDEO_OUT_PORT!")
+IF DEFINED AUDIO_IN_PORT IF /I NOT "!AUDIO_IN_PORT!"=="!DEFAULT_AUDIO_IN_PORT!" (SET "NETWORK_PARAMETERS=!NETWORK_PARAMETERS! -audio_in_port !AUDIO_IN_PORT!")
+IF DEFINED AUDIO_OUT_PORT IF /I NOT "!AUDIO_OUT_PORT!"=="!DEFAULT_AUDIO_OUT_PORT!" (SET "NETWORK_PARAMETERS=!NETWORK_PARAMETERS! -audio_out_port !AUDIO_OUT_PORT!")
+IF DEFINED LOG_LEVEL IF /I NOT "!LOG_LEVEL!"=="!DEFAULT_LOG_LEVEL!" (SET "LOG= -log_level !LOG_LEVEL!")
+
 :: set up channel
 IF /I NOT "!ROLE!"=="receiver" (
-    SET "CHANNEL_TRANSMITTER=!CDIPIPE_CMD! -role transmitter -channel !CHANNEL_TYPE! -adapter !ADAPTER_TYPE! -local_ip !LOCAL_IP! -remote_ip !REMOTE_IP! -port !PORT_NUMBER! -video_in_port !VIDEO_IN_PORT! -audio_in_port !AUDIO_IN_PORT! -frame_width !VIDEO_WIDTH! -frame_height !VIDEO_HEIGHT! -log_level !LOG_LEVEL!"
+    SET "CHANNEL_TRANSMITTER=!CDIPIPE_CMD! -role transmitter!NETWORK_PARAMETERS! -frame_width !VIDEO_WIDTH! -frame_height !VIDEO_HEIGHT!!LOG!"
 )
 
 IF /I NOT "!ROLE!"=="transmitter" (
-    SET "CHANNEL_RECEIVER=!CDIPIPE_CMD! -role receiver -channel !CHANNEL_TYPE! -adapter !ADAPTER_TYPE! -local_ip !LOCAL_IP! -port !PORT_NUMBER! -video_out_port !VIDEO_OUT_PORT! -audio_out_port !AUDIO_OUT_PORT! -log_level !LOG_LEVEL!"
+    SET "CHANNEL_RECEIVER=!CDIPIPE_CMD! -role receiver!NETWORK_PARAMETERS!!LOG!"
 )
 
 :: set up player/streamer
 IF /I NOT "!ROLE!"=="transmitter" (
     IF /I "!RECEIVER_MODE!"=="play" (
-        SET "WINDOW_TITLE= -window_title "CHANNEL TYPE - !CHANNEL_TYPE!""
+        IF DEFINED CHANNEL_TYPE (SET "WINDOW_TITLE= -window_title "CHANNEL TYPE: !CHANNEL_TYPE!"") ELSE (SET "WINDOW_TITLE= -window_title "CHANNEL TYPE: !DEFAULT_CHANNEL_TYPE!"")
         SET "PLAYER=!FFPLAY_CMD!!FFPLAY_GLOBAL_OPTIONS!!WINDOW_TITLE! -i -"
         SET "DESTINATION=!ENCODER! - | !PLAYER!"
     ) ELSE (
@@ -586,17 +613,17 @@ ECHO Options:
 ECHO     -role ^<type^>                          : type of role: transmitter ^| receiver ^| both (optional, default: !ROLE!)
 ECHO     -mode ^<option^>                        : receiver mode: play ^| stream ^| store (optional, default: !RECEIVER_MODE!)
 ECHO     -log_level ^<value^>                    : log level : trace ^| debug ^| info ^| warning ^| error (optional, default: !LOG_LEVEL!)
-ECHO     -channel ^<type^>                       : type of channel: cdi ^| cdistream ^| tcp (optional, default: !CHANNEL_TYPE!)
+ECHO     -channel ^<type^>                       : type of channel: cdi ^| cdistream ^| tcp (optional, default: !DEFAULT_CHANNEL_TYPE!)
 ECHO     -width ^<value^>                        : input source frame width (required in receiver mode, default: !DEFAULT_VIDEO_WIDTH!)
 ECHO     -height ^<value^>                       : input source frame height (required in receiver mode, default: !DEFAULT_VIDEO_HEIGHT!)
 ECHO     -framerate ^<value^>                    : input source frame rate (required in receiver mode, default: !DEFAULT_VIDEO_AVG_FRAME_RATE!)
 ECHO     -adapter ^<type^>                       : type of adapter: efa ^| socket ^| socketlibfabric
 ECHO                                             (optional, default: !ADAPTER_TYPE!)
-ECHO     -local_ip ^<ip_address^>                : local IP address (optional, default 127.0.0.1 or IP address 
+ECHO     -local_ip ^<ip_address^>                : local IP address (optional, default !DEFAULT_IP! or IP address 
 ECHO                                             of first local adapter when -remote_ip is specified)
-ECHO     -remote_ip ^<ip_address^>               : remote IP address (optional, applies to transmitter only, default 127.0.0.1
+ECHO     -remote_ip ^<ip_address^>               : remote IP address (optional, applies to transmitter only, default !DEFAULT_IP!
 ECHO                                             or IP address of first local adapter when -local_ip is specified)
-ECHO     -port ^<port_number^>                   : destination port number (optional, default !PORT_NUMBER!)
+ECHO     -port ^<port_number^>                   : destination port number (optional, default !DEFAULT_PORT_NUMBER!)
 ECHO     -output ^<destination^>                 : output file name or URL (required for stream and store receiver modes)
 ECHO     -output_format ^<type^>                 : output format type: rgb ^| mp4 (optional, default: !OUTPUT_FORMAT!)
 ECHO.
