@@ -22,4 +22,4 @@ enum class AudioSamplingRate
     Rate96kHz
 };
 
-extern enum_map<AudioSamplingRate> audio_samplingRate_map;
+extern enum_map<AudioSamplingRate> audio_sampling_rate_map;

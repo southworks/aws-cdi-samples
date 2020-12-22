@@ -11,7 +11,7 @@ enum_map<AudioChannelGrouping> audio_channel_grouping_map{
     { "SDI", AudioChannelGrouping::Sdi },
 };
 
-enum_map<AudioSamplingRate> audio_samplingRate_map{
+enum_map<AudioSamplingRate> audio_sampling_rate_map{
     { "Mono", AudioSamplingRate::Rate48kHz },
     { "Stereo", AudioSamplingRate::Rate96kHz }
 };
