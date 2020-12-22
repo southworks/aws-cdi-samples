@@ -77,6 +77,10 @@ IF NOT "%~1"=="" (
         GOTO usage
     )
 
+    IF "!PARAMETER_NAME!"=="show" (
+        SET "SHOW_SETTINGS=1" & GOTO next
+    )
+
     IF "!PARAMETER_NAME!"=="examples" (
         GOTO examples
     )
@@ -379,7 +383,7 @@ IF DEFINED INPUT_SOURCE (
     FOR /F "tokens=1,2,3 delims=^=" %%G IN ('!ANALYZE_AUDIO!') DO (SET "AUDIO_%%G=%%H")    
 )
 
-:show_options
+:show_settings
 IF DEFINED QUIET_MODE GOTO quiet
 
 ECHO Current options:
@@ -476,6 +480,7 @@ IF DEFINED OUTPUT (
 )
 
 ECHO.
+IF DEFINED SHOW_SETTINGS GOTO exit
 
 :quiet
 :: set up overlay
@@ -648,6 +653,7 @@ ECHO     -audio_stream_index ^<index^>           : input audio stream index (opt
 ECHO     -time_offset ^<seconds^>                : audio/video stream time offset (optional, default: !TIME_OFFSET!)
 ECHO     -rx_timestamp                         : display receiver timestamp overlay (optional, default: !DEFAULT_RX_TIMESTAMP!)
 ECHO     -tx_timestamp                         : display transmitter timestamp overlay (optional, default: !DEFAULT_TX_TIMESTAMP!)
+ECHO     -show                                 : show current settings and exit (optional, default: false)
 ECHO     -keep                                 : keep tool windows open (optional, default: !DEFAULT_KEEP_WINDOWS!)
 ECHO.
 ECHO IMPORTANT: set the following environment variables before using or configure all required executables in the path.
