@@ -164,7 +164,7 @@ void CdiTools::TcpConnection::async_receive(ReceiveHandler handler)
 #endif
         << "...";
 
-    if (default_stream->payload_type() == PayloadType::Video) {
+    if (default_stream->get_type() == PayloadType::Video) {
         async_read(socket_, sgl, read_complete);
     }
     else {

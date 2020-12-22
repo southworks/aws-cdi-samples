@@ -13,6 +13,6 @@ namespace CdiTools
         {
         }
 
-        inline PayloadType payload_type() override final { return PayloadType::Ancillary; }
+        inline PayloadType get_type() override final { return PayloadType::Ancillary; }
     };
 }

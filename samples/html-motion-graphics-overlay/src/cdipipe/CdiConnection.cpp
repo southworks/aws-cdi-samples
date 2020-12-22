@@ -168,7 +168,7 @@ void CdiTools::CdiConnection::async_transmit(Payload payload, TransmitHandler ha
 
     auto stream = get_stream(payload->stream_identifier());
     if (stream->get_payloads_transmitted() == 0) {
-        switch (stream->payload_type()) {
+        switch (stream->get_type()) {
         case PayloadType::Video:
             rs = Cdi::create_stream_configuration(std::dynamic_pointer_cast<VideoStream>(stream), payload_config, avm_config);
             break;

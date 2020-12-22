@@ -19,7 +19,7 @@ namespace CdiTools
         {
         }
 
-        virtual PayloadType payload_type() = 0;
+        virtual PayloadType get_type() = 0;
         inline uint16_t id() { return stream_identifier_; }
         inline int payload_size() { return payload_size_; }
         inline int received_payload() { return ++payloads_received_; }

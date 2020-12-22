@@ -34,7 +34,7 @@ CdiTools::Connection::~Connection()
 
 void CdiTools::Connection::add_stream(std::shared_ptr<CdiTools::Stream> stream)
 {
-    switch (stream->payload_type()) {
+    switch (stream->get_type()) {
     case PayloadType::Video:
     case PayloadType::Audio:
     case PayloadType::Ancillary:

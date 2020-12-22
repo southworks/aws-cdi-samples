@@ -18,7 +18,7 @@ namespace CdiTools
         {
         }
 
-        inline PayloadType payload_type() override final { return PayloadType::Audio; }
+        inline PayloadType get_type() override final { return PayloadType::Audio; }
         inline AudioChannelGrouping channel_grouping() { return channel_grouping_; }
         inline AudioSamplingRate sampling_rate() { return sampling_rate_; }
         inline const std::string& language() { return language_; }

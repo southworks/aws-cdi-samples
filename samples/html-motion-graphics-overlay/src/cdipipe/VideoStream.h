@@ -19,7 +19,7 @@ namespace CdiTools
         {
         }
 
-        inline PayloadType payload_type() override final { return PayloadType::Video; }
+        inline PayloadType get_type() override final { return PayloadType::Video; }
         inline int frame_width() { return frame_width_; }
         inline int frame_height() { return frame_height_; }
         inline int bytes_per_pixel() { return bytes_per_pixel_; }
