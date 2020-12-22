@@ -527,20 +527,19 @@ IF /I NOT "!ROLE!"=="receiver" (
 
 :: set up encoder
 IF /I NOT "!ROLE!"=="transmitter" (
-    SET "FILTER_DELIMITER="
-    IF /I "!OUTPUT_FORMAT!"=="rgb" (
-        SET "ENCODER_FORMAT= -f rawvideo"
-    ) ELSE IF /I "!OUTPUT_FORMAT!"=="mp4" (
-        IF /I "!RECEIVER_MODE!"=="store" (SET "ENCODER_FORMAT= -f mp4") ELSE (SET "ENCODER_FORMAT= -f mpegts")
-    )
-
-    SET "ENCODER_RAW= -an -c:v rawvideo -pix_fmt rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -r !VIDEO_AVG_FRAME_RATE!!BIT_RATE!!OUTPUT_FORMAT!"
     IF /I "!RECEIVER_MODE!"=="stream" (
         SET "ENCODER_OUTPUT= -c:a copy -c:v libx264 -x264opts sliced-threads -pix_fmt yuv420p -crf 21 -preset veryfast -tune zerolatency -vsync cfr -g 10 -b:a 128k -f hls -hls_time 10 -hls_playlist_type event"
     ) ELSE (
-        SET "ENCODER_OUTPUT= -c:a copy -c:v libx264 -x264opts sliced-threads -pix_fmt yuv420p -preset ultrafast -tune zerolatency -vsync cfr -g 10!ENCODER_FORMAT!"
+        IF /I "!OUTPUT_FORMAT!"=="rgb" (
+            SET "ENCODER_FORMAT= -f rawvideo"
+            SET "ENCODER_OUTPUT= -an -c:v rawvideo -pix_fmt rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -r !VIDEO_AVG_FRAME_RATE!!BIT_RATE!!ENCODER_FORMAT!"
+        ) ELSE IF /I "!OUTPUT_FORMAT!"=="mp4" (
+            IF /I "!RECEIVER_MODE!"=="store" (SET "ENCODER_FORMAT= -f mp4") ELSE (SET "ENCODER_FORMAT= -f mpegts")
+            SET "ENCODER_OUTPUT= -c:a copy -c:v libx264 -x264opts sliced-threads -pix_fmt yuv420p -preset ultrafast -tune zerolatency -vsync cfr -g 10!ENCODER_FORMAT!"
+        )
     )
 
+    SET "FILTER_DELIMITER="
     IF DEFINED VIDEO_OUT_PORT (SET "VIDEO_OUT_ENDPOINT=tcp://127.0.0.1:!VIDEO_OUT_PORT!") ELSE (SET "VIDEO_OUT_ENDPOINT=tcp://127.0.0.1:!DEFAULT_VIDEO_OUT_PORT!")
     IF DEFINED AUDIO_OUT_PORT (SET "AUDIO_OUT_ENDPOINT=tcp://127.0.0.1:!AUDIO_OUT_PORT!") ELSE (SET "AUDIO_OUT_ENDPOINT=tcp://127.0.0.1:!DEFAULT_AUDIO_OUT_PORT!")
     SET "RX_VIDEO_STREAM= -itsoffset !TIME_OFFSET! -thread_queue_size !VIDEO_QUEUE_SIZE! -pixel_format rgb24 -video_size !VIDEO_WIDTH!x!VIDEO_HEIGHT! -framerate !VIDEO_AVG_FRAME_RATE! -f rawvideo -i !VIDEO_OUT_ENDPOINT!"
