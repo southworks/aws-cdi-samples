@@ -21,7 +21,7 @@ SET "FFPLAY_GLOBAL_OPTIONS= -hide_banner -loglevel info"
 SET RECEIVER_MODE_OPTIONS="play stream store"
 SET ROLE_OPTIONS="transmitter receiver both"
 SET CHANNEL_OPTIONS="cdistream cdi tcp"
-SET ADAPTER_OPTIONS="efa socket socketlibfabric"
+SET ADAPTER_OPTIONS="efa socketlibfabric"
 SET FORMAT_OPTIONS="rgb mp4"
 SET LOG_LEVEL_OPTIONS="trace debug info warning error"
 
@@ -621,7 +621,7 @@ ECHO     -channel ^<type^>                       : type of channel: cdi ^| cdist
 ECHO     -width ^<value^>                        : input source frame width (required in receiver mode, default: !DEFAULT_VIDEO_WIDTH!)
 ECHO     -height ^<value^>                       : input source frame height (required in receiver mode, default: !DEFAULT_VIDEO_HEIGHT!)
 ECHO     -framerate ^<value^>                    : input source frame rate (required in receiver mode, default: !DEFAULT_VIDEO_AVG_FRAME_RATE!)
-ECHO     -adapter ^<type^>                       : type of adapter: efa ^| socket ^| socketlibfabric
+ECHO     -adapter ^<type^>                       : type of adapter: efa ^| socketlibfabric
 ECHO                                             (optional, default: !ADAPTER_TYPE!)
 ECHO     -local_ip ^<ip_address^>                : local IP address (optional, default !DEFAULT_IP! or IP address 
 ECHO                                             of first local adapter when -remote_ip is specified)
