@@ -19,7 +19,7 @@ SET "FFPLAY_GLOBAL_OPTIONS= -hide_banner -loglevel info"
 ::SET "FFPLAY_GLOBAL_OPTIONS=-hide_banner -probesize 32 -sync ext -infbuf -autoexit  -genpts -fast -rw_timeout 60000000"
 
 SET RECEIVER_MODE_OPTIONS="play stream store"
-SET ROLE_OPTIONS="transmitter receiver both"
+SET ROLE_OPTIONS="source transmitter receiver both"
 SET CHANNEL_OPTIONS="cdistream cdi tcp"
 SET ADAPTER_OPTIONS="efa socketlibfabric"
 SET FORMAT_OPTIONS="rgb mp4"
@@ -63,7 +63,15 @@ SET "DEFAULT_KEEP_WINDOWS=false"
 IF "%~1"=="" (GOTO usage)
 SET PARAMETER=%~1
 IF "!PARAMETER:~0,1!"=="-" GOTO loop
-SET "INPUT_SOURCE=!MEDIA_PATH!%1"
+SET "SCHEME=!PARAMETER:~0,6!"
+IF /I "!SCHEME!"=="udp://" (
+    SET "INPUT_SOURCE=!PARAMETER!?overrun_nonfatal=1&fifo_size=5000000"
+) ELSE IF /I "!SCHEME!"=="rtp://" (
+    SET "INPUT_SOURCE=!PARAMETER!?overrun_nonfatal=1&fifo_size=5000000"
+) ELSE (
+    SET "INPUT_SOURCE=!MEDIA_PATH!!PARAMETER!"
+)
+
 SHIFT
 :loop
 IF NOT "%~1"=="" (
@@ -242,8 +250,8 @@ IF NOT "%~1"=="" (
     )
 
     IF "!PARAMETER_NAME!"=="quiet" (
-        SET "FFMPEG_CMD=!FFMPEG_CMD! -loglevel quiet"
-        SET "FFPLAY_CMD=!FFPLAY_CMD! -loglevel quiet"
+        SET "FFMPEG_CMD=!FFMPEG_CMD! -loglevel quiet 2>NUL"
+        SET "FFPLAY_CMD=!FFPLAY_CMD! -loglevel quiet 2>NUL"
         SET "FFPROBE_CMD=!FFPROBE_CMD! -loglevel quiet"
         SET "HTMLSRC_CMD=!HTMLSRC_CMD! --quiet -l error"
         ::SET "CDIPIPE_CMD=!CDIPIPE_CMD! -quiet"
@@ -275,8 +283,8 @@ IF DEFINED LOCAL_IP (SET USE_NETWORK=1)
 IF DEFINED REMOTE_IP (SET USE_NETWORK=1)
 IF DEFINED USE_NETWORK (FOR /f "tokens=2 delims=\[\]" %%A IN ('ping -n 1 -4 "%COMPUTERNAME%"') DO SET IP_ADDRESS=%%A) 
 
-IF NOT DEFINED INPUT_SOURCE (
-    IF /I "!ROLE!"=="receiver" (
+IF /I "!ROLE!"=="receiver" (
+    IF NOT DEFINED INPUT_SOURCE (
         CALL :ParseValue VIDEO_WIDTH width !VIDEO_WIDTH! !VIDEO_WIDTH!
         IF "!ERRORLEVEL!"=="1" (GOTO exit)
 
@@ -285,12 +293,15 @@ IF NOT DEFINED INPUT_SOURCE (
 
         CALL :ParseValue VIDEO_AVG_FRAME_RATE framerate !VIDEO_AVG_FRAME_RATE! !VIDEO_AVG_FRAME_RATE!
         IF "!ERRORLEVEL!"=="1" (GOTO exit)
+
+        GOTO validation_1
     )
-) ELSE (
-    CALL :ParseValue INPUT_SOURCE source !INPUT_SOURCE! !INPUT_SOURCE!
-    IF "!ERRORLEVEL!"=="1" (GOTO exit)
 )
 
+CALL :ParseValue INPUT_SOURCE source !INPUT_SOURCE! !INPUT_SOURCE!
+IF "!ERRORLEVEL!"=="1" (GOTO exit)
+
+:validation_1
 CALL :ParseOptions RECEIVER_MODE mode !RECEIVER_MODE_OPTIONS! !RECEIVER_MODE!
 IF "!ERRORLEVEL!"=="1" (GOTO exit)
 
@@ -307,21 +318,28 @@ CALL :ParseOptions LOG_LEVEL log_level !LOG_LEVEL_OPTIONS! !LOG_LEVEL! info
 IF "!ERRORLEVEL!"=="1" (GOTO exit)
 
 IF /I NOT "!ROLE!"=="transmitter" (
-    IF NOT "!RECEIVER_MODE!"=="play" IF "!OUTPUT!"=="" (
-        ECHO ERROR: Must specify an output when the receiver mode is set to '!RECEIVER_MODE!'.
-        GOTO exit
+    IF "!OUTPUT!"=="" (
+        IF /I "!ROLE!"=="source" (
+            ECHO ERROR: Must specify an output when the role is '!ROLE!'.
+            GOTO exit
+        )
+
+        IF /I NOT "!RECEIVER_MODE!"=="play" (
+            ECHO ERROR: Must specify an output when the receiver mode is '!RECEIVER_MODE!'.
+            GOTO exit
+        )
     )
 
     SET "SCHEME=!OUTPUT:~0,7!"    
-    IF "!RECEIVER_MODE!"=="stream" (
+    IF /I "!RECEIVER_MODE!"=="stream" (
         ::IF NOT "!SCHEME!"=="http://" (
         ::    ECHO ERROR: Output URL must start with 'http://' when receiver mode is set to 'stream'.
         ::    GOTO exit
         ::)
         ::SET "STREAMER_OUTPUT=!OUTPUT:~7!"
         ECHO.
-    ) ELSE IF "!RECEIVER_MODE!"=="store" (
-        IF "!SCHEME!"=="http://" (
+    ) ELSE IF /I "!RECEIVER_MODE!"=="store" (
+        IF /I "!SCHEME!"=="http://" (
             ECHO ERROR: Output URL must be a file path when receiver mode is set to 'store'.
             GOTO exit
         )
@@ -336,6 +354,8 @@ IF /I NOT "!ROLE!"=="transmitter" (
 
 :check_overlay
 IF DEFINED OVERLAY_SOURCE (
+    IF /I "!ROLE!"=="receiver" (GOTO invalid_overlay_parameter)
+    IF /I "!ROLE!"=="source" (GOTO invalid_overlay_parameter)
     :: overlay window size is required for the time being to compute overlay frame size
     IF NOT DEFINED OVERLAY_WINDOW_WIDTH GOTO missing_overlay_dimensions
     IF NOT DEFINED OVERLAY_WINDOW_HEIGHT GOTO missing_overlay_dimensions
@@ -368,19 +388,24 @@ IF DEFINED OVERLAY_SOURCE (
 :missing_overlay_source
     ECHO ERROR: One or more overlay parameters were provided but overlay source is missing. Specify source URL using the '-overlay' parameter.
     GOTO exit
+
+:invalid_overlay_parameter    
+    ECHO ERROR: Overlay parameter is not valid in !ROLE! mode.
+    GOTO exit
 )
 
 :start
 :: analize input source
 IF DEFINED INPUT_SOURCE (
-    IF DEFINED QUIET_MODE SET "FFPROBE_CMD=!FFPROBE_CMD! 2^>NUL"
+    ECHO Analyzing input source...
+    SET "FFPROBE_CMD=!FFPROBE_CMD! 2^>NUL"
     SET "VIDEO_METADATA=stream=codec_name,width,height,display_aspect_ratio,pix_fmt,r_frame_rate,avg_frame_rate,duration,duration_ts,bit_rate,bits_per_raw_sample,nb_frames : format=duration"
-    SET "ANALYZE_VIDEO=!FFPROBE_CMD! -hide_banner -v error -select_streams v:0 -show_entries "!VIDEO_METADATA!" -of default=noprint_wrappers=1 !INPUT_SOURCE!"
+    SET "ANALYZE_VIDEO=!FFPROBE_CMD! -hide_banner -v error -select_streams v:0 -show_entries "!VIDEO_METADATA!" -of default=noprint_wrappers=1 "!INPUT_SOURCE!""
     FOR /F "tokens=1,2,3 delims=^=" %%G IN ('!ANALYZE_VIDEO!') DO (SET "VIDEO_%%G=%%H")
 
     SET "AUDIO_METADATA=stream=codec_name,sample_rate,channels,channel_layout,bits_per_sample,duration,duration_ts,bit_rate,max_bit_rate,bits_per_raw_sample : format=duration"
-    SET "ANALYZE_AUDIO=!FFPROBE_CMD! -hide_banner -v error -select_streams a:!AUDIO_STREAM_INDEX! -show_entries "!AUDIO_METADATA!" -of default=noprint_wrappers=1 !INPUT_SOURCE!"
-    FOR /F "tokens=1,2,3 delims=^=" %%G IN ('!ANALYZE_AUDIO!') DO (SET "AUDIO_%%G=%%H")    
+    SET "ANALYZE_AUDIO=!FFPROBE_CMD! -hide_banner -v error -select_streams a:!AUDIO_STREAM_INDEX! -show_entries "!AUDIO_METADATA!" -of default=noprint_wrappers=1 "!INPUT_SOURCE!""
+    FOR /F "tokens=1,2,3 delims=^=" %%G IN ('!ANALYZE_AUDIO!') DO (SET "AUDIO_%%G=%%H")
 )
 
 :show_settings
@@ -390,16 +415,6 @@ ECHO Current options:
 ECHO   Role                   : !ROLE!
 ECHO   Mode                   : !RECEIVER_MODE!
 ECHO   Log level              : !LOG_LEVEL!
-IF DEFINED TX_TIMESTAMP (
-    ECHO   Transmitter Timestamp  : yes
-) ELSE (
-    ECHO   Transmitter Timestamp  : no
-)
-IF DEFINED RX_TIMESTAMP (
-    ECHO   Receiver Timestamp     : yes
-) ELSE (
-    ECHO   Receiver Timestamp     : no
-)
 ECHO.
 IF DEFINED CHANNEL_TYPE (
     ECHO   Channel                : !CHANNEL_TYPE!
@@ -509,9 +524,14 @@ SET "PTS_OPTIONS=drawtext=fontfile=/Windows/Fonts/arial.ttf:fontsize=36:start_nu
 SET "TIMECODE=drawtext=font=Lucida Sans:fontsize=36:start_number=1:timecode='00\:00\:00\:00': r=!VIDEO_AVG_FRAME_RATE!: bordercolor=black:borderw=1'"
 
 :: set up source
+IF /I "!ROLE!"=="source" (
+    SET "LIVE_SOURCE=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS! -re -stream_loop -1 -i "!INPUT_SOURCE!" -c:a copy -c:v copy -f rtp_mpegts !OUTPUT!"
+    GOTO run
+)
+
 IF /I NOT "!ROLE!"=="receiver" (
     SET "FILTER_DELIMITER="
-    SET "INPUT_STREAM= -re -i !INPUT_SOURCE!"
+    SET "INPUT_STREAM= -re -i "!INPUT_SOURCE!""
     SET "BIT_RATE= -b:v 2M -maxrate 1M -bufsize 1M"
     IF /I "!AUDIO_CODEC_NAME!"=="aac" (SET "AUDIO_FORMAT=adts") ELSE (SET "AUDIO_FORMAT=!AUDIO_CODEC_NAME!")
     IF DEFINED VIDEO_IN_PORT (SET "VIDEO_IN_ENDPOINT=tcp://127.0.0.1:!VIDEO_IN_PORT!") ELSE (SET "VIDEO_IN_ENDPOINT=tcp://127.0.0.1:!DEFAULT_VIDEO_IN_PORT!")
@@ -522,7 +542,7 @@ IF /I NOT "!ROLE!"=="receiver" (
     IF DEFINED TX_TIMESTAMP (SET "TX_FILTER=!TX_FILTER!!FILTER_DELIMITER!!PTS_OPTIONS!:x=20:y=20:fontcolor=white" & SET "FILTER_DELIMITER=, ")
     IF DEFINED TX_FILTER (SET "TX_FILTER= -filter_complex "!TX_FILTER!"")
     SET "TX_PROCESSOR=!FFMPEG_CMD!!FFMPEG_GLOBAL_OPTIONS!!INPUT_STREAM!!OVERLAY_STREAM!!TX_FILTER!!TX_VIDEO_STREAM!!TX_AUDIO_STREAM!"
-    IF DEFINED OVERLAY_INPUT (SET "SOURCE=!OVERLAY_INPUT! | !TX_PROCESSOR!") ELSE (SET "SOURCE=!TX_PROCESSOR!")
+    IF DEFINED OVERLAY_INPUT (SET "COMPOSER=!OVERLAY_INPUT! | !TX_PROCESSOR!") ELSE (SET "COMPOSER=!TX_PROCESSOR!")
 )
 
 :: set up encoder
@@ -583,13 +603,20 @@ IF /I NOT "!ROLE!"=="transmitter" (
     )
 )
 
+:run
 IF DEFINED DEBUG (
-    IF DEFINED SOURCE (ECHO ## SOURCE & ECHO !SOURCE! & ECHO.)
+    IF DEFINED LIVE_SOURCE (ECHO ## LIVE SOURCE & ECHO !LIVE_SOURCE! & ECHO.)
+    IF DEFINED COMPOSER (ECHO ## COMPOSER & ECHO !COMPOSER! & ECHO.)
     IF DEFINED DESTINATION (ECHO ## OUTPUT & ECHO !DESTINATION! & ECHO.)
     IF DEFINED CHANNEL_RECEIVER (ECHO ## RECEIVER & ECHO !CHANNEL_RECEIVER! & ECHO.)
     IF DEFINED CHANNEL_TRANSMITTER (ECHO ## TRANSMITTER & ECHO !CHANNEL_TRANSMITTER! & ECHO.)
     GOTO exit
 ) 
+
+IF /I "!ROLE!"=="source" (
+    START !WINDOW_MODE! "LIVE SOURCE" CMD !CONSOLE_MODE! "PROMPT LIVE_SOURCE$G&&!LIVE_SOURCE!"
+    GOTO exit
+)
 
 IF /I "!ROLE!"=="both" (GOTO receiver) ELSE (IF /I "!ROLE!"=="receiver" GOTO receiver)
 :check_tx
@@ -598,13 +625,13 @@ GOTO exit
 
 :receiver
 START !WINDOW_MODE! "CHANNEL RECEIVER" CMD !CONSOLE_MODE! "PROMPT RECEIVER$G&&!CHANNEL_RECEIVER!"
-START !WINDOW_MODE! "ENCODER/PLAYER" CMD !CONSOLE_MODE! "PROMPT PLAYER$G&&!DESTINATION!"
+START !WINDOW_MODE! "ENCODER" CMD !CONSOLE_MODE! "PROMPT PLAYER$G&&!DESTINATION!"
 GOTO check_tx
 
 :transmitter
 START !WINDOW_MODE! "CHANNEL TRANSMITTER" CMD !CONSOLE_MODE! "PROMPT TRANSMITTER$G&&!CHANNEL_TRANSMITTER!"
 TIMEOUT 3 > nul
-START !WINDOW_MODE! "SOURCE" CMD !CONSOLE_MODE! "PROMPT SOURCE$G&&!SOURCE!"
+START !WINDOW_MODE! "COMPOSER" CMD !CONSOLE_MODE! "PROMPT COMPOSER$G&&!COMPOSER!"
 GOTO exit
 
 :usage
@@ -650,8 +677,6 @@ ECHO     -video_out_port ^<port_number^>         : video input port number (opti
 ECHO     -audio_out_port ^<port_number^>         : audio input port number (optional, default: !AUDIO_OUT_PORT!)
 ECHO     -audio_stream_index ^<index^>           : input audio stream index (optional, default: !AUDIO_STREAM_INDEX!)
 ECHO     -time_offset ^<seconds^>                : audio/video stream time offset (optional, default: !TIME_OFFSET!)
-ECHO     -rx_timestamp                         : display receiver timestamp overlay (optional, default: !DEFAULT_RX_TIMESTAMP!)
-ECHO     -tx_timestamp                         : display transmitter timestamp overlay (optional, default: !DEFAULT_TX_TIMESTAMP!)
 ECHO     -show                                 : show current settings and exit (optional, default: false)
 ECHO     -keep                                 : keep tool windows open (optional, default: !DEFAULT_KEEP_WINDOWS!)
 ECHO.
