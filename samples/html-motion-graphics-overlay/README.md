@@ -18,7 +18,7 @@ The inputs of the composition process are a live video source and the HTML marku
 
 As a video source, the sample uses a MediaConnect flow connected to a third EC2 instance reproducing a sample video file in a loop and streaming the output to MediaConnect using RTP. Of course, it can be replaced by any suitable live video source.
 
-Most HTML content capable of rendering an animation can be used as the overlay source. It is retrieved from an external web server or an S3 bucket using HTTP or read from a local file on disk. 
+Most HTML content capable of rendering an animation can be used as the overlay source. It can be retrieved from a web server or an S3 bucket using HTTP or read from a local file on disk. 
 
 ### Motion Graphics Renderer
 The Motion Graphics Renderer is a process that uses an offscreen Chromium component to render the externally provided HTML source. It captures changes to the rendered page and outputs them as a sequence of uncompressed video frames.
@@ -43,14 +43,14 @@ CDI is used to transport the uncompressed video across the network with minimal 
 
 To enable this integration, the transmission is handled by a separate component that we have named the CDI Pipe. It is essentially a protocol bridge between a local inter-process communication mechanism, in this case sockets, and CDI. 
 
-The CDI Pipe can act as a transmitter, by reading a video stream from a local endpoint and transmitting it to a CDI destination, or it can behave as a receiver, reading from a CDI stream and outputting its data to a local endpoint where applications can connect to process it. The composer, or other socket capable applications, can connect to the pipe allowing them to transmit or receive live video using CDI. 
+The CDI Pipe can act as a transmitter, by reading a video stream from a local endpoint and transmitting it to a CDI destination, or it can behave as a receiver, reading from a CDI stream and outputting its data to a local endpoint where applications can connect to process it. The Composer and the Encoder, or other socket capable applications, can connect to the pipe to transmit or receive live video using CDI. 
 
 ### Encoder
 Video stream encoding is performed by the second EC2 instance. This machine runs another instance of the CDI Pipe component, this time configured in receiver mode. Once again, FFmpeg connects to the component’s output socket to read the uncompressed video coming from the first machine, encodes it, and then packages the result as an HLS stream. 
 
 As it encodes each HLS segment, it uploads it to an S3 bucket that has been previously created and configured with a policy that enables public read access. Currently, this process involves mounting the S3 bucket as a virtual drive in the second EC2 instance using a third-party component [MSP360](https://www.msp360.com/drive.aspx), although this may change in the future. The HLS segments are written directly to this drive as if it were a local disk.
 
-While in this sample the composition output is sent directly to the encoder machine, other production workflows could chain additional intermediary processes for further processing transporting the video between EC2 instances using CDI Pipes.
+While in this sample the composition output is sent directly to the EC2 instance running the encoder, other production workflows could chain additional intermediary processes for further processing transporting the video between machines using multiple instances of the CDI Pipe.
 
 ### Clients
 Clients can use any HLS capable player to read the manifest from the S3 bucket and play back the composition output.
@@ -80,7 +80,7 @@ The AWS Cloud Digital Interface SDK and the AWS SDK for C++ are required in orde
 
   > **Note:** To run this sample in you development machine, it may be necessary to build the SDK after disabling the publishing of performance metrics to your Amazon CloudWatch account. Refer to the [Building the Sample](#building-the-sample) section for more details.
 
-- The CDI Pipe component requires several [Boost](https://www.boost.org/) libraries that you can obtain using any suitable mechanism, for example, using the [vcpkg](https://github.com/microsoft/vcpkg) package manager. The steps to download and build vcpkg are described in detail in their [Getting Started](https://github.com/microsoft/vcpkg#getting-started) document. Briefly:
+- The CDI Pipe component requires several [Boost](https://www.boost.org/) libraries that you can obtain by any suitable means, for example, using the [vcpkg](https://github.com/microsoft/vcpkg) package manager. The steps to download and build vcpkg are described in detail in their [Getting Started](https://github.com/microsoft/vcpkg#getting-started) document. Briefly:
   - Clone the vcpkg repo from GitHub: https://github.com/Microsoft/vcpkg.
   - In the vcpkg root directory, run the vcpkg bootstrapper:
     - `bootstrap-vcpkg.bat` (Windows)
@@ -93,7 +93,7 @@ The AWS Cloud Digital Interface SDK and the AWS SDK for C++ are required in orde
   vcpkg install boost-circular-buffer:x64-windows
   vcpkg install boost-bimap:x64-windows
   ```
-
+> **Note**: By default, vcpkg will download 32-bit libraries. Make sure to include the `:x64-windows` suffix when installing the libraries.
 ## Building the Sample
 
 - Set the following environment variables before building the sample:
@@ -129,11 +129,10 @@ To run the sample in an EFA environment instead, you will need to modify the com
 EXECUTE ... -role transmitter
 or
 EXECUTE ... -role receiver
-or the default role
+or (default role)
 EXECUTE ... [-role both]
 ```
-
-Additional parameters are necessary when transmitting across the network.
+Additional parameters are necessary to communicate across the network when using two machines.
 
 On the transmitter side, the **-remote_ip** parameter specifies the IP address of the receiver. You can also provide a local IP address with the **-local_ip** parameter, although this is not required unless the machine has multiple network interfaces and you wish to select a particular one. To choose a port number different from the default value, use the **-port** parameter. For example: 
 
@@ -149,11 +148,13 @@ EXECUTE ... -role receiver -adapter efa [-local_ip 172.27.4.60] [-port 2500]
 
 > **IMPORTANT**: The firewall and the network security group must be configured to allow CDI traffic between the transmitter and receiver. Refer to the [CDI SDK](https://github.com/aws/aws-cdi-sdk/blob/mainline/README.md) documentation for additional information on how to set up and configure the EC2 instances. For this sample, traffic from the **cdipipe.exe** executable must be allowed through the firewall.
 
-By default, both audio and video streams are transported using a single CDI connection, though other communication modes are also possible:
+By default, both the audio and video streams are transported using a single CDI connection, though it is possible to configure the channel for other communication modes.
 
-- `CDISTREAM` - creates a single CDI connection for both audio and video (this is the default channel mode)
-- `CDI` - creates separate CDI connections for audio and video
-- `TCP`- creates separate TCP connections for audio and video (for local testing only)
+Channel Type | Description
+------------ | -------------
+`CDISTREAM` | creates a single CDI connection for both audio and video (this is the default channel mode)
+`CDI` | creates separate CDI connections for audio and video
+`TCP` | creates separate TCP connections for audio and video (for local testing only)
 
  The channel mode can be changed using the **-channel** parameter as shown below. For example:
 
@@ -161,7 +162,7 @@ By default, both audio and video streams are transported using a single CDI conn
 EXECUTE ... -channel cdi
 ```
 
-> **Note**: Using the CDI SDK v1.0, when starting the channel in CDI mode (i.e. separate connections), we find that the communication works reliably once a connection is established, but that it may take several attempts to successfully connect and that the initialization sometimes fails with the following assertion:  
+> **Note**: Using the CDI SDK v1.0, when starting the channel in CDI mode (i.e. separate connections), we find that the communication works reliably once a connection is established, but it may take several attempts to successfully connect as the initialization sometimes fails with the following assertion:  
 _Assertion failed: 0 == ret, file ...\aws-cdi-sdk\src\cdi\adapter_efa.c, line 278_
 
 Lastly, as part of the protocol, CDI can send information about the video payloads it transmits including parameters such as frame width, height and rate, sample format, bit depth, alpha channel, among other settings. Similarly, in the case of audio payloads, it can provide metadata such as channel layout, sample rate, and language. A receiver can use this information to configure itself appropriately. 
@@ -244,6 +245,8 @@ EXECUTE tears_of_steel_720p.mov
 ```
 ![alt text](doc-assets/pipeline-windows.png "Composer Video Pipeline Tools")
 
+> **Note**: To stop the pipeline and unload the running applications, press 'q' in the CHANNEL TRANSMITTER and CHANNEL RECEIVER windows. Pressing 'q' in the COMPOSER and ENCODER windows will not always shut down the applications depending on the parameters that were used to start the pipeline. In that case, press CTRL + C to cancel them.
+
 ---
 ### Adding an Overlay
 Next, you can add an overlay to the video, for example, using an HTML source loaded from a local disk file.
@@ -273,7 +276,7 @@ EXECUTE tears_of_steel_720p.mov -overlay https://threejs.org/examples/#webgl_mor
 
 ---
 ### Storing the output
-So far, you have used the EXECUTE script to play back the output video. To store it to a disk file instead, specify a **-mode** parameter with a value of `store` and provide the path of the file to generate using the **-output** parameter. To stop the process and store the content received so far, press 'q' in the ENCODER window. 
+So far, you have used the script to play back the output video. To store it to a disk file instead, specify a **-mode** parameter with a value of `store` and provide the path of the file to generate using the **-output** parameter. To stop the process and store the content received so far, press 'q' in the ENCODER window. 
 
 ```
 EXECUTE tears_of_steel_720p.mov -overlay https://threejs.org/examples/#webgl_morphtargets_horse -overlay_viewport_origin 500 55 -overlay_window_size 1366 768 -overlay_viewport_size 800 600 -overlay_frame_rate 24 -overlay_scale_factor 0.75 -overlay_chroma_color #F0F0F0 -mode store -output cdi-sample.mp4
@@ -286,7 +289,7 @@ EXECUTE tears_of_steel_720p.mov -overlay https://threejs.org/examples/#webgl_mor
 ```
 ---
 ### HLS Streaming
-In addition to the playback and storage functions, the EXECUTE script can configure the pipeline to enable streaming the composition output. To do this, set the **-mode** parameter to `stream` and the **-output** parameter  to the location where the HLS segments should be written. For example:
+In addition to the playback and storage functions, the script can configure the pipeline to enable streaming the composition output. To do this, set the **-mode** parameter to `stream` and the **-output** parameter  to the location where the HLS segments should be written. For example:
 ```
 EXECUTE tears_of_steel_720p.mov -overlay https://threejs.org/examples/#webgl_morphtargets_horse -overlay_viewport_origin 500 55 -overlay_window_size 1366 768 -overlay_viewport_size 800 600 -overlay_frame_rate 24 -overlay_scale_factor 0.75 -overlay_chroma_color #F0F0F0 -mode stream -output "hls\cdi-sample.m3u8"
 ```
@@ -346,7 +349,7 @@ Since the encoder cannot write its output directly to S3, we used a third-party 
 > **Note**: It may also be possible to set the output location to an HTTP endpoint and upload the HLS segments to a web server instead (using HTTP PUT), but we have never tested this option and it might require additional configuration.
 
 #### Starting the Encoder
-Go to the Receiver EC2 instance and run the EXECUTE script with the **-mode** parameter set to `stream` and the **-output** parameter pointing to the path of the HLS manifest to generate in the mapped S3 drive. For example:
+Go to the Receiver EC2 instance and run the script with the **-mode** parameter set to `stream` and the **-output** parameter pointing to the location in the mapped S3 drive where the manifest should be written. For example:
 
 ```
 EXECUTE -role receiver -adapter efa -width 1280 -height 534 -framerate 24 -mode stream -output E:\cdi-demo\tears-of-steel.m3u8
@@ -354,7 +357,7 @@ EXECUTE -role receiver -adapter efa -width 1280 -height 534 -framerate 24 -mode 
 > **Note**: Replace the **-width**, **-height**, and **-framerate** parameters with the correct settings when using a different video source. If the **-output** parameters points to a subdirectory in the mapped drive (e.g. E:\cdi-demo\tears-of-steel.m3u8), make sure that it already exists or create it before executing the command.
 
 #### Starting the Composer
-Go to the Transmitter EC2 instance and run the EXECUTE script to launch the Composer. The parameters will vary depending on whether you use a MediaConnect source or a local video file as input.
+Go to the Transmitter EC2 instance and run the script to launch the Composer. The parameters will vary depending on whether you use a MediaConnect source or a local video file as input.
 
 - **Using a MediaConnect source**  
   Use the following command to start the Composer with a MediaConnect source:
@@ -382,7 +385,7 @@ EXECUTE tears_of_steel_720p.mov -role source -output rtp://XX.XX.XX.XX:NNNN
 > **Note**: replace the IP address and port with the inbound IP address and port of the MediaConnect flow in the command above.
 
 ### Streaming the Composition Output
-Wait a few seconds for the process to start. You should see a message in both the channel transmitter and channel receiver consoles indicating that the CDI connection was established. Soon after, the encoder window will start to log a message as each segment is generated. You should see the HLS segments stored in the mapped S3 drive using File Explorer.
+Wait a few seconds for the process to start. You should see a message in both the channel transmitter and channel receiver consoles indicating when the CDI connection is established. Soon after, the encoder window will start to log a message as each segment is generated. You should see the HLS segments stored in the mapped S3 drive using File Explorer.
 
 Similarly, the [Amazon S3 console](https://s3.console.aws.amazon.com/) will show the uploaded HLS content.
 
