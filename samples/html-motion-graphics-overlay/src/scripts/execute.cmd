@@ -660,8 +660,6 @@ ECHO     FFMPEG_PATH : path to ffmpeg.exe, ffplay.exe, and ffprobe.exe
 ECHO     TOOLS_PATH  : path to htmlsrc.exe and cdipipe.exe
 ECHO     MEDIA_PATH  : path to source media files
 ECHO.
-ECHO To see some example command lines, type !SCRIPT_NAME! -examples
-ECHO.
 GOTO exit
 
 :ParseOptions
