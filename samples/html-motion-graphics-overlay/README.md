@@ -120,6 +120,53 @@ It is also possible to run locally with some restrictions. The complete video pr
 
 > As an example, we have successfully ran the sample on an Core i7 CPU, 8 cores, and 16GB of memory with a 1280x534@24fps video source, albeit running at almost 100% CPU usage.
 
+### Script Usage
+Running the pipeline requires starting several processes. To make this task easier, we provide a script to launch the tools for a variety of configurations. You can find the script named _**execute**_ in the _**scripts**_ folder of the repository. Refer to the [Using the Sample](#using-the-sample) section for additional details.
+
+**EXECUTE** _\<source\>_ [_\<options...\>_]
+  
+    <source>                              : source file path or URL (required)
+
+### Options:
+    -role <type>                          : type of role: transmitter | receiver | both (optional, default: both)
+    -mode <option>                        : receiver mode: play | stream | store (optional, default: play)
+    -log_level <value>                    : log level : trace | debug | info | warning | error (optional, default: )
+    -channel <type>                       : type of channel: cdi | cdistream | tcp (optional, default: cdistream)
+    -width <value>                        : input source frame width (required in receiver mode, default: none)
+    -height <value>                       : input source frame height (required in receiver mode, default: none)
+    -framerate <value>                    : input source frame rate (required in receiver mode, default: none)
+    -adapter <type>                       : type of adapter: efa | socketlibfabric
+                                            (optional, default: socketlibfabric)
+    -local_ip <ip_address>                : local IP address (optional, default 127.0.0.1 or IP address
+                                            of first local adapter when -remote_ip is specified)
+    -remote_ip <ip_address>               : remote IP address (optional, applies to transmitter only, default 127.0.0.1
+                                            or IP address of first local adapter when -local_ip is specified)
+    -port <port_number>                   : destination port number (optional, default 2000)
+    -output <destination>                 : output file name or URL (required for stream and store receiver modes)
+    -output_format <type>                 : output format type: rgb | mp4 (optional, default: mp4)
+
+### Overlay options:
+    -overlay <overlay_source>             : file path or URL of the overlay page (optional, default: no overlay)
+    -overlay_window_size <width height>   : overlay window pixel width and height (optional, default: none)
+    -overlay_viewport_origin <left top>   : overlay viewport origin left top coordinates (optional, default: 0 0)
+    -overlay_viewport_size <width height> : overlay viewport width and height (optional, default: window size)
+    -overlay_position <position>          : overlay position [top-left | top-right | bottom-left | bottom-right]
+                                            (optional, default: bottom-left)
+    -overlay_framerate <rate>             : overlay frame rate (optional, default: 30)
+    -overlay_scale_factor <scale>         : overlay scale factor (optional, default: 1)
+    -overlay_chroma_color <color>         : overlay transparent color (optional, default: none)
+    -overlay_background_color <color>     : overlay background color (optional, default: none)
+
+### Advanced options:
+    -video_in_port <port_number>          : video input port number (optional, default: 1000)
+    -audio_in_port <port_number>          : audio input port number (optional, default: 1001)
+    -video_out_port <port_number>         : video input port number (optional, default: 3000)
+    -audio_out_port <port_number>         : audio input port number (optional, default: 3001)
+    -audio_stream_index <index>           : input audio stream index (optional, default: 0)
+    -time_offset <seconds>                : audio/video stream time offset (optional, default: 0.9)
+    -show                                 : show current settings and exit (optional, default: false)    
+    -keep                                 : keep tool windows open (optional, default: false)
+
 ## Launching the Composition Pipeline
 The walkthrough that follows assumes local testing with both the receiver and transmitter running in the same machine with two CDI Pipes instances configured with the `socketlibfabric` adapter to create a channel between the composer and encoder components.
 
@@ -177,53 +224,6 @@ However, at this time, the receiving end of the pipeline uses FFmpeg to handle t
 EXECUTE ... -role receiver -width 1920 -height 1080 -framerate 30
 ```
 
-### Script Usage
-Running the pipeline requires starting several processes. To make this task easier, we provide a script to launch the tools for a variety of configurations. You can find the script named _**execute**_ in the _**scripts**_ folder of the repository. Refer to the [Using the Sample](#using-the-sample) section for additional details.
-
-**EXECUTE** _\<source\>_ [_\<options...\>_]
-  
-    <source>                              : source file path or URL (required)
-
-### Options:
-    -role <type>                          : type of role: transmitter | receiver | both (optional, default: both)
-    -mode <option>                        : receiver mode: play | stream | store (optional, default: play)
-    -log_level <value>                    : log level : trace | debug | info | warning | error (optional, default: )
-    -channel <type>                       : type of channel: cdi | cdistream | tcp (optional, default: cdistream)
-    -width <value>                        : input source frame width (required in receiver mode, default: none)
-    -height <value>                       : input source frame height (required in receiver mode, default: none)
-    -framerate <value>                    : input source frame rate (required in receiver mode, default: none)
-    -adapter <type>                       : type of adapter: efa | socketlibfabric
-                                            (optional, default: socketlibfabric)
-    -local_ip <ip_address>                : local IP address (optional, default 127.0.0.1 or IP address
-                                            of first local adapter when -remote_ip is specified)
-    -remote_ip <ip_address>               : remote IP address (optional, applies to transmitter only, default 127.0.0.1
-                                            or IP address of first local adapter when -local_ip is specified)
-    -port <port_number>                   : destination port number (optional, default 2000)
-    -output <destination>                 : output file name or URL (required for stream and store receiver modes)
-    -output_format <type>                 : output format type: rgb | mp4 (optional, default: mp4)
-
-### Overlay options:
-    -overlay <overlay_source>             : file path or URL of the overlay page (optional, default: no overlay)
-    -overlay_window_size <width height>   : overlay window pixel width and height (optional, default: none)
-    -overlay_viewport_origin <left top>   : overlay viewport origin left top coordinates (optional, default: 0 0)
-    -overlay_viewport_size <width height> : overlay viewport width and height (optional, default: window size)
-    -overlay_position <position>          : overlay position [top-left | top-right | bottom-left | bottom-right]
-                                            (optional, default: bottom-left)
-    -overlay_framerate <rate>             : overlay frame rate (optional, default: 30)
-    -overlay_scale_factor <scale>         : overlay scale factor (optional, default: 1)
-    -overlay_chroma_color <color>         : overlay transparent color (optional, default: none)
-    -overlay_background_color <color>     : overlay background color (optional, default: none)
-
-### Advanced options:
-    -video_in_port <port_number>          : video input port number (optional, default: 1000)
-    -audio_in_port <port_number>          : audio input port number (optional, default: 1001)
-    -video_out_port <port_number>         : video input port number (optional, default: 3000)
-    -audio_out_port <port_number>         : audio input port number (optional, default: 3001)
-    -audio_stream_index <index>           : input audio stream index (optional, default: 0)
-    -time_offset <seconds>                : audio/video stream time offset (optional, default: 0.9)
-    -show                                 : show current settings and exit (optional, default: false)    
-    -keep                                 : keep tool windows open (optional, default: false)
-
 ## Using the Sample
 
 **IMPORTANT**: Set the following environment variables before running the _**EXECUTE**_ script or configure the required executables in the path:
@@ -236,6 +236,12 @@ Running the pipeline requires starting several processes. To make this task easi
 For this walkthrough, download the sample video from the link below and store it in the location specified by the **MEDIA_PATH** environment variable. You can use a different video, but take into account that the machine where you are running the sample needs to be capable of handling its frame rate and frame size when running the composition process. The suggested video has a resolution of 1280 x 534 @ 24fps.
 
 http://ftp.nluug.nl/pub/graphics/blender/demo/movies/ToS/tears_of_steel_720p.mov  
+
+Open a command prompt and change the current directory to the _**scripts**_ folder to run the EXECUTE script. To see the full list of command line parameters, use the **-help** parameter.
+
+```
+EXECUTE -help
+```
 
 ---
 ### Transmitting a Video using CDI
