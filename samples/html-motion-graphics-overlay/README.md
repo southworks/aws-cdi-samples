@@ -344,7 +344,7 @@ Streaming requires setting an output destination for the HLS stream produced by 
 
 For our testing, we created an [Amazon S3](https://docs.aws.amazon.com/s3/?id=docs_gateway) bucket to contain the HLS segments. Depending on your requirements, you may want to configure the bucket to manage access to its content and make it public. See [Identity and access management in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html).
 
-Since the encoder cannot write its output directly to S3, we used a third-party product [MSP360](https://www.msp360.com/drive.aspx), formerly CloudBerry Drive, to map the S3 bucket to a local drive in the Receiver EC2 instance allowing any files written to the drive to be automatically uploaded to cloud storage.
+Since the encoder cannot write its output directly to S3, we used a third-party product [MSP360 Drive](https://www.msp360.com/drive.aspx), formerly CloudBerry Drive, to map the S3 bucket to a local drive in the Receiver EC2 instance allowing any files written to the drive to be automatically uploaded to cloud storage.
 
 > **Note**: It may also be possible to set the output location to an HTTP endpoint and upload the HLS segments to a web server instead (using HTTP PUT), but we have never tested this option and it might require additional configuration.
 
@@ -367,7 +367,7 @@ Go to the Transmitter EC2 instance and run the script to launch the Composer. Th
   > **Note**: Change the source URL address `udp://SS.SS.SS.SS:PPPP` to reflect the destination IP address and port of the Media Connect flow output. Note that the scheme is `udp://` as we have experienced some issues using the expected value of `rtp://`. Replace the value of the **-remote_ip** parameter `NN.NN.NN.NN` with the IP address of the Receiver instance 
 
 - **Using a Local source**  
-  A simpler scenario that does not require setting up MediaConnect is also possible. Copy the source video to the EC2 instance running the Composer and use the following commmand to stream it directly to the Composer. 
+  A simpler scenario that does not require setting up MediaConnect is also possible. Copy the source video to the EC2 instance running the Composer and use the following command to stream it directly to the Composer. 
 
   ```
   EXECUTE tears_of_steel_720p.mov -overlay https://threejs.org/examples/#webgl_morphtargets_horse -overlay_viewport_origin 500 55 -overlay_window_size 1366 768 -overlay_viewport_size 800 600 -overlay_frame_rate 24 -overlay_scale_factor 0.75 -overlay_chroma_color #F0F0F0 -role transmitter -adapter efa -remote_ip NN.NN.NN.NN
