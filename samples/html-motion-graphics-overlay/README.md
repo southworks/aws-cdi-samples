@@ -48,7 +48,7 @@ The CDI Pipe can act as a transmitter, by reading a video stream from a local en
 ### Encoder
 Video stream encoding is performed by the second EC2 instance. This machine runs another instance of the CDI Pipe component, this time configured in receiver mode. Once again, FFmpeg connects to the component’s output socket to read the uncompressed video coming from the first machine, encodes it, and then packages the result as an HLS stream. 
 
-As it encodes each HLS segment, it uploads it to an S3 bucket that has been previously created and configured with a policy that enables public read access. Currently, this process involves mounting the S3 bucket as a virtual drive in the second EC2 instance using a third-party component [MSP360](https://www.msp360.com/drive.aspx), although this may change in the future. The HLS segments are written directly to this drive as if it were a local disk.
+As it encodes each HLS segment, it uploads it to an S3 bucket that has been previously created and configured with a policy that enables public read access. Currently, this process involves mounting the S3 bucket as a virtual drive in the second EC2 instance using a third-party component [MSP360 Drive](https://www.msp360.com/drive.aspx), although this may change in the future. The HLS segments are written directly to this drive as if it were a local disk.
 
 While in this sample the composition output is sent directly to the EC2 instance running the encoder, other production workflows could chain additional intermediary processes for further processing transporting the video between machines using multiple instances of the CDI Pipe.
 
@@ -298,7 +298,7 @@ EXECUTE tears_of_steel_720p.mov -overlay https://threejs.org/examples/#webgl_mor
 
 
 > **Note**: Make sure that the output folder exists. If you reproduce the output directly from your local disk instead of a server, be aware that the .m3u8 manifest stores segment file names in relative form and your player needs to be able to locate them. It might be necessary to change the current directory to the location of the manifest file before starting the player (e.g. `ffplay cdi-sample.m3u8`).  
-When running in AWS, we have successfully used [MSP360](https://www.msp360.com/drive.aspx) to mount an S3 bucket as a local disk drive on the EC2 instance and set the output location to a local path on the mounted disk. This enabled the output to be streamed live to clients directly from the S3 bucket.
+When running in AWS, we have successfully used [MSP360 Drive](https://www.msp360.com/drive.aspx) to mount an S3 bucket as a local disk drive on the EC2 instance and set the output location to a local path on the mounted disk. This enabled the output to be streamed live to clients directly from the S3 bucket.
 
 ---
 ### Running in EC2 with EFA
