@@ -406,6 +406,7 @@ ffplay https://demos.s3.amazonaws.com/demos/cdi-demo/tears-of-steel.m3u8
 ## Known Issues
 - Pressing 'q' does not exit the composer when adding an overlay. Press CTRL + C instead.
 - Pressing 'q' does not exit the encoder in 'play' mode. Press CTRL + C instead.
+- Pressing 'q' in the channel receiver does not exit if connection has never been established. Press CTRL + C instead.
 - Some baseline configuration settings are hard-coded.
 - It may take several attempts to successfully connect when configuring the CDI pipe channel in CDI mode (i.e. separate connections) using CDI SDK v1.0. The connection initialization may fail with the following assertion:  
 _Assertion failed: 0 == ret, file ...\aws-cdi-sdk\src\cdi\adapter_efa.c, line 278_    
