@@ -4,6 +4,8 @@
 #include <iomanip>
 
 #include "CommandLine.h"
+#include "Git.h"
+#include "Version.h"
 
 std::ostream& operator<<(std::ostream& os, const OptionBase& option)
 {
@@ -14,17 +16,8 @@ std::ostream& operator<<(std::ostream& os, const OptionBase& option)
 
 bool CommandLine::show_usage()
 {
-    const size_t start_index = program_path_.find_last_of("\\/");
-    size_t end_index = program_path_.rfind('.');
-    size_t length = end_index > start_index
-        ? end_index - start_index - 1 : program_path_.size() - start_index;
-
-    std::cout << program_path_.substr(start_index + 1, length);
-    if (!program_description_.empty()) {
-        std::cout << " - " << program_description_;
-    }
-
-    std::cout << "\nUsage:\n";
+    show_version();
+    std::cout << "Usage:\n";
 
     for (auto&& option : options_) {
         std::cout << "  -" << std::left << std::setw(20) << option.second->get_name()
@@ -37,6 +30,27 @@ bool CommandLine::show_usage()
     std::cout << "\n";
 
     return false;
+}
+
+void CommandLine::show_version(bool show_git_hash)
+{
+    const size_t start_index = program_path_.find_last_of("\\/");
+    size_t end_index = program_path_.rfind('.');
+    size_t length = end_index > start_index
+        ? end_index - start_index - 1 : program_path_.size() - start_index;
+
+    std::cout << program_path_.substr(start_index + 1, length)
+              << " " << MAJOR_VERSION << "." << MINOR_VERSION;
+
+    if (show_git_hash) {
+        std::cout << " (commit #" << GIT_COMMIT_HASH << ")";
+    }
+
+    if (!program_description_.empty()) {
+        std::cout << " - " << program_description_;
+    }
+
+    std::cout << std::endl;
 }
 
 void CommandLine::show_options()
@@ -58,6 +72,11 @@ bool CommandLine::parse(int argc, char* argv[])
             std::string option_name = argv[i] + 1;
             if (option_name == "help") {
                 show_usage();
+                return false;
+            }
+
+            if (option_name == "version") {
+                show_version(true);
                 return false;
             }
 

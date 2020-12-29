@@ -141,6 +141,7 @@ public:
     bool parse(int argc, char* argv[]);
     bool show_usage();
     void show_options();
+    void show_version(bool show_git_hash = false);
     template <typename T> CommandLine& add_option(const std::string& name, const std::string& help_text, T& value);
     template <typename T> CommandLine& add_option(const std::string& name, const std::string& help_text, T& value, const enum_map<T>& value_map);
     //CommandLine& add_validator(const std::string& name, Validator validator);

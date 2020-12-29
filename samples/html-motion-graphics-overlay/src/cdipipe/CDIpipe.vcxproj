@@ -181,6 +181,10 @@
     <PostBuildEvent>
       <Command>xcopy /y /d "$(CDI_SDK_PATH)\proj\$(Platform)\$(Configuration)\libfabric.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>git -C $(ProjectDir) log -n 1 --format="#define GIT_COMMIT_HASH \"%%h\"" &gt; $(ProjectDir)Git.h
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-CloudWatch|Win32'">
     <ClCompile>
@@ -199,6 +203,10 @@
     <PostBuildEvent>
       <Command>xcopy /y /d "$(CDI_SDK_PATH)\proj\$(Platform)\Debug\libfabric.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>git -C $(ProjectDir) log -n 1 --format="#define GIT_COMMIT_HASH \"%%h\"" &gt; $(ProjectDir)Git.h
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -221,6 +229,10 @@
     <PostBuildEvent>
       <Command>xcopy /y /d "$(CDI_SDK_PATH)\proj\$(Platform)\$(Configuration)\libfabric.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>git -C $(ProjectDir) log -n 1 --format="#define GIT_COMMIT_HASH \"%%h\"" &gt; $(ProjectDir)Git.h
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-CloudWatch|Win32'">
     <ClCompile>
@@ -243,6 +255,10 @@
     <PostBuildEvent>
       <Command>xcopy /y /d "$(CDI_SDK_PATH)\proj\$(Platform)\Release\libfabric.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>git -C $(ProjectDir) log -n 1 --format="#define GIT_COMMIT_HASH \"%%h\"" &gt; $(ProjectDir)Git.h
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -261,6 +277,10 @@
     <PostBuildEvent>
       <Command>xcopy /y /d "$(CDI_SDK_PATH)\proj\$(Platform)\$(Configuration)\libfabric.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>git -C $(ProjectDir) log -n 1 --format="#define GIT_COMMIT_HASH \"%%h\"" &gt; $(ProjectDir)Git.h
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-CloudWatch|x64'">
     <ClCompile>
@@ -279,6 +299,10 @@
     <PostBuildEvent>
       <Command>xcopy /y /d "$(CDI_SDK_PATH)\proj\$(Platform)\Debug\libfabric.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>git -C $(ProjectDir) log -n 1 --format="#define GIT_COMMIT_HASH \"%%h\"" &gt; $(ProjectDir)Git.h
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -301,6 +325,10 @@
     <PostBuildEvent>
       <Command>xcopy /y /d "$(CDI_SDK_PATH)\proj\$(Platform)\$(Configuration)\libfabric.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>git -C $(ProjectDir) log -n 1 --format="#define GIT_COMMIT_HASH \"%%h\"" &gt; $(ProjectDir)Git.h
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-CloudWatch|x64'">
     <ClCompile>
@@ -323,6 +351,10 @@
     <PostBuildEvent>
       <Command>xcopy /y /d "$(CDI_SDK_PATH)\proj\$(Platform)\Release\libfabric.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>git -C $(ProjectDir) log -n 1 --format="#define GIT_COMMIT_HASH \"%%h\"" &gt; $(ProjectDir)Git.h
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Cdi.cpp" />
@@ -382,6 +414,7 @@
     <ClInclude Include="TcpConnection.h" />
     <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="Utils.h" />
+    <ClInclude Include="Version.h" />
     <ClInclude Include="VideoStream.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
