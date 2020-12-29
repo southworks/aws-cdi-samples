@@ -89,7 +89,7 @@ CdiTools::PayloadBuffer& CdiTools::Connection::get_buffer()
 {
     size_t buffer_size = payload_buffer_.size();
     if (payload_buffer_.is_full()) {
-        if (!suppress_buffer_notifications_) {
+        if (!suppress_buffer_notifications_ && payload_buffer_.capacity() > 0) {
             LOG_WARNING << "Receive buffer for connection '" << get_name() << "' is full"
                 << ", capacity: " << payload_buffer_.capacity()
                 << ". One or more payloads will be discarded.";
