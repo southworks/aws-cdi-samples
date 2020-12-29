@@ -26,7 +26,7 @@ namespace CdiTools
         Channel(const std::string& name);
         ~Channel();
 
-        void start(ChannelHandler handler, int thread_pool_size = 0);
+        void start(ChannelRole channel_role, ChannelHandler handler, int thread_pool_size = 0);
         void shutdown();
         std::shared_ptr<IConnection> add_input(ConnectionType connection_type, const std::string& name, const std::string& host_name,
             unsigned short port_number, ConnectionMode connection_mode, int buffer_size);
