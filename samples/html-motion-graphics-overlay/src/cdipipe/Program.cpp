@@ -70,6 +70,9 @@ int main(int argc, char* argv[])
             Configuration::frame_rate_denominator = tokens.size() > 1 ? tokens[1] : 1;
         }
 
+        command_line.show_version();
+        std::cout << "Press 'q' to exit...\n\n";
+
         return Application::run(channel_role, show_channel_config);
     }
 

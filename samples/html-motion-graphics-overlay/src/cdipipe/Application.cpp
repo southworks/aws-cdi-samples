@@ -253,15 +253,7 @@ int CdiTools::Application::run(ChannelRole channel_role, bool show_channel_confi
             channel->shutdown();
         });
 
-        std::cout << "Channel is starting (mode: " << enum_name(channel_role_map, channel_role) 
-            << ", type: " << enum_name(channel_type_map, Configuration::channel_type)
-            << ", threads: " << Configuration::num_threads
-            << ", large payload pool: " << Configuration::large_buffer_pool_max_items 
-            << ", small payload pool: " << Configuration::small_buffer_pool_max_items << ")...\n";
-
-        std::cout << "Press 'q' to exit...\n\n";
-
-        channel->start([](const std::error_code& ec) {
+        channel->start(channel_role, [](const std::error_code& ec) {
             if (ec) {
                 std::cout << "ERROR: " << ec.message() << ".\n";
             }

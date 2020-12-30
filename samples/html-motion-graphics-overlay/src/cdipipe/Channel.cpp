@@ -14,6 +14,8 @@
 #include "VideoStream.h"
 #include "AudioStream.h"
 #include "AncillaryStream.h"
+#include "Configuration.h"
+#include "Enum.h"
 
 using boost::asio::steady_timer;
 
@@ -28,8 +30,15 @@ CdiTools::Channel::~Channel()
     shutdown();
 }
 
-void CdiTools::Channel::start(ChannelHandler handler, int thread_pool_size)
+void CdiTools::Channel::start(ChannelRole channel_role, ChannelHandler handler, int thread_pool_size)
 {
+    LOG_INFO << "Channel is starting..." << "\n"
+        << "Mode               : " << enum_name(channel_role_map, channel_role) << "\n"
+        << "Type               : " << enum_name(channel_type_map, Configuration::channel_type) << "\n"
+        << "Threads            : " << Configuration::num_threads << "\n"
+        << "Large payload pool : " << Configuration::large_buffer_pool_max_items << "\n"
+        << "Small payload pool : " << Configuration::small_buffer_pool_max_items;
+
     active_ = std::make_unique<boost::asio::io_context::work>(io_);
 
     LOG_INFO << "Waiting for channel connections to be ready...";
