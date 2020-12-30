@@ -67,9 +67,9 @@ Clients can use any HLS capable player to read the manifest from the S3 bucket a
 ## Setup
 The AWS Cloud Digital Interface SDK and the AWS SDK for C++ are required in order to build the sample.
 
-- Follow the instructions found in the [AWS CDI SDK installation guide](https://github.com/aws/aws-cdi-sdk/blob/mainline/INSTALL_GUIDE_WINDOWS.md#install-the-aws-cdi-sdk) to clone the **AWS CDI SDK** and **Libfabric** GitHub repositories.
+- Follow the instructions found in the [AWS CDI SDK installation guide](https://github.com/aws/aws-cdi-sdk/blob/mainline/INSTALL_GUIDE_WINDOWS.md#install-the-aws-cdi-sdk) to clone the **AWS CDI SDK**, **Libfabric** and **PDCurses** GitHub repositories.
 
-- Follow [Install the AWS CDI SDK](https://github.com/aws/aws-cdi-sdk/blob/mainline/INSTALL_GUIDE_WINDOWS.md#install-the-aws-cdi-sdk) to download and build the **AWS SDK for C++**.
+- Follow the [Install the AWS SDK steps](https://github.com/aws/aws-cdi-sdk/blob/mainline/INSTALL_GUIDE_WINDOWS.md#install-the-aws-sdk-for-c) to download and build the **AWS SDK for C++**.
   > **Note:** When runnning the `msbuild` command to build the SDK, make sure to also include the `/p:Configuration` parameter specifying the selected configuration mode (Debug or Release). For example, to build in Release mode:
   > ```
   > msbuild ALL_BUILD.vcxproj /p:Configuration=Release
